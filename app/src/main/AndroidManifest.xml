@@ -40,6 +40,14 @@
             android:name=".SettingsCategoriesActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ContactMessageSettingsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".VoiceCommandSettingsActivity"
+            android:exported="false" />
+
         <service
             android:name=".VoiceTriggerService"
             android:enabled="true"
