@@ -1,3 +1,4 @@
+
 package com.example.emergencysafety
 
 import android.content.Context
@@ -24,17 +25,35 @@ class VoiceTriggerManager(private val context: Context) {
     private val prefsName = "VoiceCommandSettings"
 
     private fun normalize(text: String): String {
-        return text.lowercase(Locale("tr", "TR"))
-            .trim()
+        var result = text.lowercase(Locale("tr", "TR"))
+            .replace(Regex("[^\\p{L}\\p{N}\\s]"), " ")
             .replace(Regex("\\s+"), " ")
+            .trim()
+
+        result = result
+            .replace(
+                Regex("(?<!\\p{L})kırk\\s*bir(?!\\p{L})"),
+                "41"
+            )
+            .replace(
+                Regex("(?<!\\p{L})kırk\\s*iki(?!\\p{L})"),
+                "42"
+            )
+
+        return result.replace(Regex("\\s+"), " ").trim()
     }
 
-    private fun getCommand(key: String, defaultValue: String): String {
+    private fun getCommand(
+        key: String,
+        defaultValue: String
+    ): String {
         val prefs = context.getSharedPreferences(
             prefsName,
             Context.MODE_PRIVATE
         )
-        return normalize(prefs.getString(key, defaultValue) ?: defaultValue)
+        return normalize(
+            prefs.getString(key, defaultValue) ?: defaultValue
+        )
     }
 
     fun startListening(
@@ -50,7 +69,10 @@ class VoiceTriggerManager(private val context: Context) {
         isListening = true
 
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            Log.e("VoiceTriggerManager", "Ses tanıma desteklenmiyor.")
+            Log.e(
+                "VoiceTriggerManager",
+                "Ses tanıma desteklenmiyor."
+            )
             return
         }
 
@@ -68,12 +90,18 @@ class VoiceTriggerManager(private val context: Context) {
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE,
+                "tr-TR"
+            )
             putExtra(
                 RecognizerIntent.EXTRA_CALLING_PACKAGE,
                 context.packageName
             )
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            putExtra(
+                RecognizerIntent.EXTRA_MAX_RESULTS,
+                3
+            )
         }
 
         startListeningSafely()
@@ -96,13 +124,23 @@ class VoiceTriggerManager(private val context: Context) {
     private fun createRecognitionListener() =
         object : RecognitionListener {
 
-            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onReadyForSpeech(params: Bundle?) {
+                Log.d("VoiceTriggerManager", "Dinlemeye hazır.")
+            }
+
             override fun onBeginningOfSpeech() {}
+
             override fun onRmsChanged(rmsdB: Float) {}
+
             override fun onBufferReceived(buffer: ByteArray?) {}
+
             override fun onEndOfSpeech() {}
 
             override fun onError(error: Int) {
+                Log.e(
+                    "VoiceTriggerManager",
+                    "Ses tanıma hatası: $error"
+                )
                 startListeningSafely()
             }
 
@@ -132,35 +170,49 @@ class VoiceTriggerManager(private val context: Context) {
                     for (recognizedText in matches) {
                         val spoken = normalize(recognizedText)
 
-                        when {
-                            spoken == redStart -> {
+                        Log.d(
+                            "VoiceTriggerManager",
+                            "Algılanan: '$recognizedText' -> '$spoken'"
+                        )
+
+                        when (spoken) {
+                            redStart -> {
                                 onRedStartCallback?.invoke()
                                 break
                             }
 
-                            spoken == redStop -> {
+                            redStop -> {
                                 onRedStopCallback?.invoke()
                                 break
                             }
 
-                            spoken == sirenStart -> {
+                            sirenStart -> {
                                 onSirenStartCallback?.invoke()
                                 break
                             }
 
-                            spoken == sirenStop -> {
+                            sirenStop -> {
                                 onSirenStopCallback?.invoke()
                                 break
                             }
                         }
                     }
+                } else {
+                    Log.d(
+                        "VoiceTriggerManager",
+                        "Ses tanıma sonucu bulunamadı."
+                    )
                 }
 
                 startListeningSafely()
             }
 
             override fun onPartialResults(partialResults: Bundle?) {}
-            override fun onEvent(eventType: Int, params: Bundle?) {}
+
+            override fun onEvent(
+                eventType: Int,
+                params: Bundle?
+            ) {}
         }
 
     fun stopListening() {
