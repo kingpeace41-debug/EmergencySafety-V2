@@ -14,14 +14,14 @@ class SettingsCategoriesActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnContactMessageSettings)
             .setOnClickListener {
                 startActivity(
-                    Intent(this, SettingsActivity::class.java)
+                    Intent(this, ContactMessageSettingsActivity::class.java)
                 )
             }
 
         findViewById<View>(R.id.btnVoiceCommandSettings)
             .setOnClickListener {
                 startActivity(
-                    Intent(this, SettingsActivity::class.java)
+                    Intent(this, VoiceCommandSettingsActivity::class.java)
                 )
             }
     }
