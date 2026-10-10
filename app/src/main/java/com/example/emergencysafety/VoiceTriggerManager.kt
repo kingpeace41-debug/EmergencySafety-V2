@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.speech.RecognitionListener
@@ -26,6 +27,11 @@ class VoiceTriggerManager(private val context: Context) {
 
     private val prefsName = "VoiceCommandSettings"
 
+    private var pendingCommand: String? = null
+    private var pendingCommandTime = 0L
+
+    private val confirmationWindowMs = 3000L
+
     private fun normalize(text: String): String {
         var result = text.lowercase(Locale("tr", "TR"))
             .replace(Regex("[^\\p{L}\\p{N}\\s]"), " ")
@@ -45,31 +51,6 @@ class VoiceTriggerManager(private val context: Context) {
         return result.replace(Regex("\\s+"), " ").trim()
     }
 
-    private fun giveRecognitionFeedback() {
-        try {
-            val vibrator = context.getSystemService(
-                Context.VIBRATOR_SERVICE
-            ) as? Vibrator
-
-            if (vibrator?.hasVibrator() == true) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator.vibrate(
-                        VibrationEffect.createOneShot(45, 100)
-                    )
-                } else {
-                    @Suppress("DEPRECATION")
-                    vibrator.vibrate(45)
-                }
-            }
-        } catch (exception: Exception) {
-            Log.e(
-                "VoiceTriggerManager",
-                "Geri bildirim titreşimi verilemedi.",
-                exception
-            )
-        }
-    }
-
     private fun getCommand(
         key: String,
         defaultValue: String
@@ -81,6 +62,64 @@ class VoiceTriggerManager(private val context: Context) {
         return normalize(
             prefs.getString(key, defaultValue) ?: defaultValue
         )
+    }
+
+    private fun vibrate(pattern: LongArray) {
+        try {
+            val vibrator = context.getSystemService(
+                Context.VIBRATOR_SERVICE
+            ) as? Vibrator
+
+            if (vibrator?.hasVibrator() == true) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(
+                        VibrationEffect.createWaveform(pattern, -1)
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(pattern, -1)
+                }
+            }
+        } catch (exception: Exception) {
+            Log.e(
+                "VoiceTriggerManager",
+                "Titreşim verilemedi.",
+                exception
+            )
+        }
+    }
+
+    private fun handleCommand(
+        commandKey: String,
+        action: () -> Unit
+    ) {
+        val now = SystemClock.elapsedRealtime()
+
+        if (
+            pendingCommand == commandKey &&
+            now - pendingCommandTime <= confirmationWindowMs
+        ) {
+            pendingCommand = null
+            pendingCommandTime = 0L
+
+            Log.d(
+                "VoiceTriggerManager",
+                "Komut iki kez doğrulandı: $commandKey"
+            )
+
+            vibrate(longArrayOf(0, 60, 80, 60))
+            action()
+        } else {
+            pendingCommand = commandKey
+            pendingCommandTime = now
+
+            Log.d(
+                "VoiceTriggerManager",
+                "İlk söyleyiş algılandı; ikinci söyleyiş bekleniyor: $commandKey"
+            )
+
+            vibrate(longArrayOf(0, 45))
+        }
     }
 
     fun startListening(
@@ -151,9 +190,7 @@ class VoiceTriggerManager(private val context: Context) {
     private fun createRecognitionListener() =
         object : RecognitionListener {
 
-            override fun onReadyForSpeech(params: Bundle?) {
-                Log.d("VoiceTriggerManager", "Dinlemeye hazır.")
-            }
+            override fun onReadyForSpeech(params: Bundle?) {}
 
             override fun onBeginningOfSpeech() {}
 
@@ -194,6 +231,9 @@ class VoiceTriggerManager(private val context: Context) {
                         "siren kapat"
                     )
 
+                    var matchedCommand: String? = null
+                    var matchedAction: (() -> Unit)? = null
+
                     for (recognizedText in matches) {
                         val spoken = normalize(recognizedText)
 
@@ -204,29 +244,33 @@ class VoiceTriggerManager(private val context: Context) {
 
                         when (spoken) {
                             redStart -> {
-                                giveRecognitionFeedback()
-                                onRedStartCallback?.invoke()
-                                break
+                                matchedCommand = "red_start"
+                                matchedAction = onRedStartCallback
                             }
 
                             redStop -> {
-                                giveRecognitionFeedback()
-                                onRedStopCallback?.invoke()
-                                break
+                                matchedCommand = "red_stop"
+                                matchedAction = onRedStopCallback
                             }
 
                             sirenStart -> {
-                                giveRecognitionFeedback()
-                                onSirenStartCallback?.invoke()
-                                break
+                                matchedCommand = "siren_start"
+                                matchedAction = onSirenStartCallback
                             }
 
                             sirenStop -> {
-                                giveRecognitionFeedback()
-                                onSirenStopCallback?.invoke()
-                                break
+                                matchedCommand = "siren_stop"
+                                matchedAction = onSirenStopCallback
                             }
                         }
+
+                        if (matchedCommand != null) {
+                            break
+                        }
+                    }
+
+                    if (matchedCommand != null && matchedAction != null) {
+                        handleCommand(matchedCommand!!, matchedAction!!)
                     }
                 }
 
@@ -243,6 +287,9 @@ class VoiceTriggerManager(private val context: Context) {
 
     fun stopListening() {
         isListening = false
+        pendingCommand = null
+        pendingCommandTime = 0L
+
         speechRecognizer?.stopListening()
         speechRecognizer?.destroy()
         speechRecognizer = null
