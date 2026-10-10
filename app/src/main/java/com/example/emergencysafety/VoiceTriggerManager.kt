@@ -1,9 +1,11 @@
-
 package com.example.emergencysafety
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -41,6 +43,31 @@ class VoiceTriggerManager(private val context: Context) {
             )
 
         return result.replace(Regex("\\s+"), " ").trim()
+    }
+
+    private fun giveRecognitionFeedback() {
+        try {
+            val vibrator = context.getSystemService(
+                Context.VIBRATOR_SERVICE
+            ) as? Vibrator
+
+            if (vibrator?.hasVibrator() == true) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(
+                        VibrationEffect.createOneShot(45, 100)
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(45)
+                }
+            }
+        } catch (exception: Exception) {
+            Log.e(
+                "VoiceTriggerManager",
+                "Geri bildirim titreşimi verilemedi.",
+                exception
+            )
+        }
     }
 
     private fun getCommand(
@@ -177,31 +204,30 @@ class VoiceTriggerManager(private val context: Context) {
 
                         when (spoken) {
                             redStart -> {
+                                giveRecognitionFeedback()
                                 onRedStartCallback?.invoke()
                                 break
                             }
 
                             redStop -> {
+                                giveRecognitionFeedback()
                                 onRedStopCallback?.invoke()
                                 break
                             }
 
                             sirenStart -> {
+                                giveRecognitionFeedback()
                                 onSirenStartCallback?.invoke()
                                 break
                             }
 
                             sirenStop -> {
+                                giveRecognitionFeedback()
                                 onSirenStopCallback?.invoke()
                                 break
                             }
                         }
                     }
-                } else {
-                    Log.d(
-                        "VoiceTriggerManager",
-                        "Ses tanıma sonucu bulunamadı."
-                    )
                 }
 
                 startListeningSafely()
