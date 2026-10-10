@@ -31,7 +31,6 @@ class MainActivity : AppCompatActivity() {
         checkPermissionsAndStartService()
         checkOverlayPermission()
 
-        // Kırmızı ACİL DURUM butonu
         val btnRedAlertId =
             resources.getIdentifier("btnRedAlert", "id", packageName)
 
@@ -40,15 +39,12 @@ class MainActivity : AppCompatActivity() {
 
             btnRedAlert?.setOnClickListener {
                 vibrateOnClick()
-                val intent = Intent(
-                    this,
-                    SettingsCategoriesActivity::class.java
+                startActivity(
+                    Intent(this, SettingsCategoriesActivity::class.java)
                 )
-                startActivity(intent)
             }
         }
 
-        // Sesli dinlemeyi açıp kapatan yuvarlak buton
         val btnToggleListeningId =
             resources.getIdentifier("btnToggleListening", "id", packageName)
 
@@ -116,7 +112,6 @@ class MainActivity : AppCompatActivity() {
         val permissions = mutableListOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CAMERA,
-            Manifest.permission.SEND_SMS,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
@@ -243,7 +238,7 @@ class MainActivity : AppCompatActivity() {
             grantResults
         )
 
-        if (requestCode == 101 && grantResults.isNotEmpty()) {
+        if (requestCode == 101) {
             val sharedPref =
                 getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
