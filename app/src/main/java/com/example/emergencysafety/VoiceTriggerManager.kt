@@ -24,6 +24,7 @@ class VoiceTriggerManager(private val context: Context) {
     private var onSirenStopCallback: (() -> Unit)? = null
 
     private var isListening = false
+    private var isStartingListening = false
 
     private val prefsName = "VoiceCommandSettings"
 
@@ -34,17 +35,18 @@ class VoiceTriggerManager(private val context: Context) {
 
     private fun normalize(text: String): String {
         var result = text.lowercase(Locale("tr", "TR"))
+            .replace('ı', 'i')
             .replace(Regex("[^\\p{L}\\p{N}\\s]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
 
         result = result
             .replace(
-                Regex("(?<!\\p{L})kırk\\s*bir(?!\\p{L})"),
+                Regex("(?<!\\p{L})kirk\\s*bir(?!\\p{L})"),
                 "41"
             )
             .replace(
-                Regex("(?<!\\p{L})kırk\\s*iki(?!\\p{L})"),
+                Regex("(?<!\\p{L})kirk\\s*iki(?!\\p{L})"),
                 "42"
             )
 
@@ -59,6 +61,7 @@ class VoiceTriggerManager(private val context: Context) {
             prefsName,
             Context.MODE_PRIVATE
         )
+
         return normalize(
             prefs.getString(key, defaultValue) ?: defaultValue
         )
@@ -89,6 +92,68 @@ class VoiceTriggerManager(private val context: Context) {
         }
     }
 
+    private fun matchesCommand(
+        spoken: String,
+        configuredCommand: String
+    ): Boolean {
+        if (spoken.isBlank() || configuredCommand.isBlank()) {
+            return false
+        }
+
+        // Önce tam eşleşmeyi dene.
+        if (spoken == configuredCommand) {
+            return true
+        }
+
+        // Birden fazla kelimeden oluşan komutlarda,
+        // komutun kelimeleri algılanan cümlede arka arkaya bulunmalı.
+        val commandWords = configuredCommand.split(" ")
+        val spokenWords = spoken.split(" ")
+
+        if (commandWords.isEmpty() || spokenWords.size < commandWords.size) {
+            return false
+        }
+
+        return spokenWords
+            .windowed(commandWords.size)
+            .any { it == commandWords }
+    }
+
+    private fun findCommand(spokenText: String): Pair<String, (() -> Unit)>? {
+        val spoken = normalize(spokenText)
+
+        val commands = listOf(
+            Triple(
+                "red_start",
+                getCommand("red_start", "kırmızı 41"),
+                onRedStartCallback
+            ),
+            Triple(
+                "red_stop",
+                getCommand("red_stop", "kırmızı 42"),
+                onRedStopCallback
+            ),
+            Triple(
+                "siren_start",
+                getCommand("siren_start", "siren aç"),
+                onSirenStartCallback
+            ),
+            Triple(
+                "siren_stop",
+                getCommand("siren_stop", "siren kapat"),
+                onSirenStopCallback
+            )
+        )
+
+        for ((key, configured, callback) in commands) {
+            if (callback != null && matchesCommand(spoken, configured)) {
+                return Pair(key, callback)
+            }
+        }
+
+        return null
+    }
+
     private fun handleCommand(
         commandKey: String,
         action: () -> Unit
@@ -115,7 +180,7 @@ class VoiceTriggerManager(private val context: Context) {
 
             Log.d(
                 "VoiceTriggerManager",
-                "İlk söyleyiş algılandı; ikinci söyleyiş bekleniyor: $commandKey"
+                "İlk algılama; ikinci söyleyiş bekleniyor: $commandKey"
             )
 
             vibrate(longArrayOf(0, 45))
@@ -166,7 +231,7 @@ class VoiceTriggerManager(private val context: Context) {
             )
             putExtra(
                 RecognizerIntent.EXTRA_MAX_RESULTS,
-                3
+                5
             )
         }
 
@@ -174,16 +239,22 @@ class VoiceTriggerManager(private val context: Context) {
     }
 
     private fun startListeningSafely() {
-        if (isListening) {
-            try {
-                speechRecognizer?.startListening(recognizerIntent)
-            } catch (exception: Exception) {
-                Log.e(
-                    "VoiceTriggerManager",
-                    "Dinleme başlatılamadı.",
-                    exception
-                )
-            }
+        if (!isListening || isStartingListening) return
+
+        val recognizer = speechRecognizer ?: return
+        val intent = recognizerIntent ?: return
+
+        try {
+            isStartingListening = true
+            recognizer.startListening(intent)
+        } catch (exception: Exception) {
+            Log.e(
+                "VoiceTriggerManager",
+                "Dinleme başlatılamadı.",
+                exception
+            )
+        } finally {
+            isStartingListening = false
         }
     }
 
@@ -205,76 +276,41 @@ class VoiceTriggerManager(private val context: Context) {
                     "VoiceTriggerManager",
                     "Ses tanıma hatası: $error"
                 )
-                startListeningSafely()
+
+                if (isListening) {
+                    startListeningSafely()
+                }
             }
 
             override fun onResults(results: Bundle?) {
-                val matches = results?.getStringArrayList(
-                    SpeechRecognizer.RESULTS_RECOGNITION
-                )
-
-                if (matches != null && isListening) {
-                    val redStart = getCommand(
-                        "red_start",
-                        "kırmızı 41"
-                    )
-                    val redStop = getCommand(
-                        "red_stop",
-                        "kırmızı 42"
-                    )
-                    val sirenStart = getCommand(
-                        "siren_start",
-                        "siren aç"
-                    )
-                    val sirenStop = getCommand(
-                        "siren_stop",
-                        "siren kapat"
+                try {
+                    val matches = results?.getStringArrayList(
+                        SpeechRecognizer.RESULTS_RECOGNITION
                     )
 
-                    var matchedCommand: String? = null
-                    var matchedAction: (() -> Unit)? = null
+                    if (matches != null && isListening) {
+                        var found: Pair<String, (() -> Unit)>? = null
 
-                    for (recognizedText in matches) {
-                        val spoken = normalize(recognizedText)
+                        for (recognizedText in matches) {
+                            Log.d(
+                                "VoiceTriggerManager",
+                                "Algılanan metin: $recognizedText"
+                            )
 
-                        Log.d(
-                            "VoiceTriggerManager",
-                            "Algılanan: '$recognizedText' -> '$spoken'"
-                        )
+                            found = findCommand(recognizedText)
 
-                        when (spoken) {
-                            redStart -> {
-                                matchedCommand = "red_start"
-                                matchedAction = onRedStartCallback
-                            }
-
-                            redStop -> {
-                                matchedCommand = "red_stop"
-                                matchedAction = onRedStopCallback
-                            }
-
-                            sirenStart -> {
-                                matchedCommand = "siren_start"
-                                matchedAction = onSirenStartCallback
-                            }
-
-                            sirenStop -> {
-                                matchedCommand = "siren_stop"
-                                matchedAction = onSirenStopCallback
-                            }
+                            if (found != null) break
                         }
 
-                        if (matchedCommand != null) {
-                            break
+                        if (found != null) {
+                            handleCommand(found.first, found.second)
                         }
                     }
-
-                    if (matchedCommand != null && matchedAction != null) {
-                        handleCommand(matchedCommand!!, matchedAction!!)
+                } finally {
+                    if (isListening) {
+                        startListeningSafely()
                     }
                 }
-
-                startListeningSafely()
             }
 
             override fun onPartialResults(partialResults: Bundle?) {}
@@ -287,11 +323,22 @@ class VoiceTriggerManager(private val context: Context) {
 
     fun stopListening() {
         isListening = false
+        isStartingListening = false
         pendingCommand = null
         pendingCommandTime = 0L
 
-        speechRecognizer?.stopListening()
-        speechRecognizer?.destroy()
+        try {
+            speechRecognizer?.cancel()
+            speechRecognizer?.destroy()
+        } catch (exception: Exception) {
+            Log.e(
+                "VoiceTriggerManager",
+                "Ses tanıma kapatılırken hata oluştu.",
+                exception
+            )
+        }
+
         speechRecognizer = null
+        recognizerIntent = null
     }
 }
