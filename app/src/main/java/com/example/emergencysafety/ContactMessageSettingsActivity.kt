@@ -52,6 +52,24 @@ class ContactMessageSettingsActivity : AppCompatActivity() {
                 prefs.getString("contact${i + 1}_phone", "")
             )
 
+            // İsim veya telefon alanına dokununca rehberi aç.
+            contactNameFields[i].setOnClickListener {
+                selectedContactIndex = i
+                openContactPicker()
+            }
+
+            contactPhoneFields[i].setOnClickListener {
+                selectedContactIndex = i
+                openContactPicker()
+            }
+
+            // Her iki alana uzun basınca da rehberi aç.
+            contactNameFields[i].setOnLongClickListener {
+                selectedContactIndex = i
+                openContactPicker()
+                true
+            }
+
             contactPhoneFields[i].setOnLongClickListener {
                 selectedContactIndex = i
                 openContactPicker()
@@ -100,7 +118,7 @@ class ContactMessageSettingsActivity : AppCompatActivity() {
 
         Toast.makeText(
             this,
-            "Rehber açmak için telefon alanına uzun basın",
+            "Kişi seçmek için isim veya telefon alanına dokunun.",
             Toast.LENGTH_LONG
         ).show()
     }
