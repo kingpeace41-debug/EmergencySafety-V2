@@ -5,7 +5,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
-import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -26,7 +25,7 @@ class YellowSafetyActivity : AppCompatActivity() {
             return (value * density + 0.5f).toInt()
         }
 
-        val background = GradientDrawable(
+        val screenBackground = GradientDrawable(
             GradientDrawable.Orientation.TL_BR,
             intArrayOf(
                 Color.rgb(12, 12, 12),
@@ -39,7 +38,7 @@ class YellowSafetyActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(dp(20), dp(24), dp(20), dp(24))
-            this.background = background
+            background = screenBackground
         }
 
         val scrollView = ScrollView(this).apply {
@@ -97,10 +96,15 @@ class YellowSafetyActivity : AppCompatActivity() {
                 textSize = 16f
                 typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
+
                 setTextColor(
-                    if (isEmergency) Color.WHITE
-                    else Color.rgb(48, 30, 0)
+                    if (isEmergency) {
+                        Color.WHITE
+                    } else {
+                        Color.rgb(48, 30, 0)
+                    }
                 )
+
                 setPadding(dp(12), dp(17), dp(12), dp(17))
                 elevation = dp(7).toFloat()
 
@@ -121,6 +125,7 @@ class YellowSafetyActivity : AppCompatActivity() {
                     }
                 ).apply {
                     cornerRadius = dp(17).toFloat()
+
                     setStroke(
                         dp(2),
                         if (isEmergency) {
@@ -172,13 +177,16 @@ class YellowSafetyActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             setTextColor(Color.WHITE)
             setPadding(dp(20), dp(13), dp(20), dp(13))
+
             background = GradientDrawable().apply {
                 setColor(Color.rgb(45, 38, 25))
                 cornerRadius = dp(12).toFloat()
                 setStroke(dp(1), Color.rgb(255, 207, 55))
             }
+
             isClickable = true
             isFocusable = true
+
             setOnClickListener {
                 finish()
             }
