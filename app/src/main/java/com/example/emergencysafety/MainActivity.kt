@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -12,9 +15,15 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -23,6 +32,10 @@ class MainActivity : AppCompatActivity() {
 
     private val volumeDownHandler = Handler(Looper.getMainLooper())
     private var volumeDownRunnable: Runnable? = null
+
+    private val instructionPrefs by lazy {
+        getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,13 +48,9 @@ class MainActivity : AppCompatActivity() {
             resources.getIdentifier("btnRedAlert", "id", packageName)
 
         if (btnRedAlertId != 0) {
-            val btnRedAlert = findViewById<View>(btnRedAlertId)
-
-            btnRedAlert?.setOnClickListener {
+            findViewById<View>(btnRedAlertId)?.setOnClickListener {
                 vibrateOnClick()
-                startActivity(
-                    Intent(this, SettingsCategoriesActivity::class.java)
-                )
+                openRedMenuWithInstruction()
             }
         }
 
@@ -49,13 +58,150 @@ class MainActivity : AppCompatActivity() {
             resources.getIdentifier("btnToggleListening", "id", packageName)
 
         if (btnToggleListeningId != 0) {
-            val btnToggleListening = findViewById<View>(btnToggleListeningId)
-
-            btnToggleListening?.setOnClickListener {
+            findViewById<View>(btnToggleListeningId)?.setOnClickListener {
                 vibrateOnClick()
                 toggleVoiceService()
             }
         }
+    }
+
+    private fun openRedMenuWithInstruction() {
+        val dontShowAgain = instructionPrefs.getBoolean(
+            "dont_show_red_instructions",
+            false
+        )
+
+        if (dontShowAgain) {
+            openRedSettings()
+        } else {
+            showRedInstructions()
+        }
+    }
+
+    private fun openRedSettings() {
+        startActivity(
+            Intent(this, SettingsCategoriesActivity::class.java)
+        )
+    }
+
+    private fun showRedInstructions() {
+        val density = resources.displayMetrics.density
+
+        fun dp(value: Int): Int =
+            (value * density + 0.5f).toInt()
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(12), dp(22), dp(4))
+        }
+
+        val scrollView = ScrollView(this).apply {
+            isFillViewport = false
+            addView(content)
+        }
+
+        val heading = TextView(this).apply {
+            text = "KIRMIZI BUTON\nKULLANIM TALİMATI"
+            textSize = 21f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.rgb(190, 32, 43))
+            gravity = Gravity.CENTER
+            setPadding(0, dp(8), 0, dp(16))
+        }
+        content.addView(heading)
+
+        val instructionText = """
+            ACİL DURUM AYARLARI
+
+            Kırmızı buton, uygulamanın acil durum ayarlarına ulaşmanızı sağlar. İlk kullanımdan önce seçenekleri inceleyin.
+
+            1. ACİL DURUM KİŞİLERİ
+
+            Kişi ve mesaj ayarları bölümünden sunulan alanları doldurun. Telefon numaralarını doğru yazdığınızdan emin olun. Yardım isteyebileceğiniz kişileri önceden belirleyin.
+
+            2. ACİL DURUM MESAJI
+
+            Mesaj ayarlarında hazır mesajı inceleyin ve düzenleme seçeneği varsa ihtiyacınıza göre değiştirin. Değişikliklerinizi kaydedin. Mesajın gönderilmesi, uygulamanın sunduğu gönderim yöntemine ve gerekli koşullara bağlıdır.
+
+            3. ACİL DURUM KODU
+
+            Sesli komut ayarlarında tanımlı kodları inceleyin. Kod seçme veya değiştirme seçeneği varsa günlük konuşmalarda az kullanılan bir kelime ve iki haneli sayı tercih edebilirsiniz.
+
+            Örnek: “Leylek 41”.
+
+            Bu yalnızca örnektir. Uygulamanın tanıdığı kodu kullanın ve seçtiğiniz kodu güvenli bir şekilde hatırlayın.
+
+            4. SİREN, FLAŞ VE TİTREŞİM
+
+            Acil durum alarmı etkinleştiğinde uygulamanın siren sesi çalar, flaş yanıp söner ve komutun alındığını bildiren kısa bir titreşim oluşur. Siren çevrenizdekilerin dikkatini çekmeye ve arama-kurtarma çalışmalarında yerinizin fark edilmesine yardımcı olmayı amaçlar.
+
+            5. SESLİ KOMUTLAR
+
+            Sesli komut özelliği için gerekli mikrofon iznini verin. Uygulamada tanımlı komutları önceden öğrenin ve güvenli bir ortamda deneyin. Sürekli dinleme özelliğini ana ekrandaki ilgili kontrolle açıp kapatabilirsiniz.
+
+            6. ALARMI DURDURMA
+
+            Alarmı durdurmak için uygulamada tanımlı durdurma komutunu veya ilgili kontrolü kullanın. Bu sürümde ses kısma tuşunu yaklaşık iki saniye basılı tutmak da sireni durdurmak için kullanılabilir.
+
+            ÖNEMLİ GÜVENLİK UYARISI
+
+            Siren tek başına yetkililere konum veya yardım çağrısı göndermez. Konum paylaşımı, otomatik fotoğraf çekimi ve ses kaydı bu talimatta etkin özellikler olarak belirtilmemektedir.
+
+            Uygulama resmî acil yardım hizmetlerinin yerine geçmez ve yardımın ulaşacağını garanti etmez. Hayati tehlike durumunda Türkiye'de 112 Acil Çağrı Merkezi'ni arayın.
+        """.trimIndent()
+
+        val body = TextView(this).apply {
+            text = instructionText
+            textSize = 15f
+            setTextColor(Color.rgb(40, 40, 40))
+            setLineSpacing(dp(3).toFloat(), 1.0f)
+            setPadding(0, 0, 0, dp(12))
+        }
+        content.addView(body)
+
+        val dontShowCheckbox = CheckBox(this).apply {
+            text = "Bir daha gösterme"
+            textSize = 15f
+            setTextColor(Color.rgb(35, 35, 35))
+            setPadding(0, dp(8), 0, dp(8))
+            isChecked = false
+        }
+        content.addView(dontShowCheckbox)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(scrollView)
+            .setPositiveButton("KAPAT", null)
+            .setCancelable(false)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                setTypeface(null, Typeface.BOLD)
+                background = GradientDrawable().apply {
+                    setColor(Color.rgb(190, 32, 43))
+                    cornerRadius = dp(10).toFloat()
+                }
+                setPadding(dp(20), dp(10), dp(20), dp(10))
+
+                setOnClickListener {
+                    if (dontShowCheckbox.isChecked) {
+                        instructionPrefs.edit()
+                            .putBoolean(
+                                "dont_show_red_instructions",
+                                true
+                            )
+                            .apply()
+                    }
+
+                    dialog.dismiss()
+                    openRedSettings()
+                }
+            }
+        }
+
+        dialog.show()
     }
 
     private fun toggleVoiceService() {
