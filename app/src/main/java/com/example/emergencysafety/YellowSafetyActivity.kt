@@ -5,62 +5,80 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 class YellowSafetyActivity : AppCompatActivity() {
 
-    private val gold = Color.rgb(255, 193, 7)
-    private val darkGold = Color.rgb(150, 95, 0)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        showMenu()
+        createSafetyMenu()
     }
 
-    private fun showMenu() {
+    private fun createSafetyMenu() {
         val density = resources.displayMetrics.density
-        fun dp(value: Int) = (value * density + 0.5f).toInt()
 
-        val root = LinearLayout(this).apply {
+        fun dp(value: Int): Int {
+            return (value * density + 0.5f).toInt()
+        }
+
+        val background = GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            intArrayOf(
+                Color.rgb(12, 12, 12),
+                Color.rgb(75, 49, 5),
+                Color.rgb(175, 111, 0)
+            )
+        )
+
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(20), dp(22), dp(20), dp(20))
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    Color.rgb(12, 12, 12),
-                    Color.rgb(65, 43, 5),
-                    Color.rgb(190, 125, 0)
-                )
-            )
+            setPadding(dp(20), dp(24), dp(20), dp(24))
+            this.background = background
         }
 
-        val scroll = ScrollView(this).apply {
+        val scrollView = ScrollView(this).apply {
             isFillViewport = true
-            addView(root)
+            addView(content)
         }
 
-        val title = TextView(this).apply {
+        val heading = TextView(this).apply {
             text = "GÜVENLİK MENÜSÜ"
             textSize = 25f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.rgb(255, 218, 105))
+            typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setPadding(0, dp(12), 0, dp(8))
+            setPadding(dp(4), dp(10), dp(4), dp(8))
         }
-        root.addView(title)
+
+        content.addView(
+            heading,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
 
         val subtitle = TextView(this).apply {
-            text = "Kendinizi güvende tutmak için bir seçenek seçin"
-            textSize = 14f
-            setTextColor(Color.rgb(255, 230, 160))
+            text = "Kendinizi güvende tutmak için bir seçenek seçin."
+            textSize = 15f
+            setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            setPadding(0, 0, 0, dp(22))
+            setPadding(dp(4), 0, dp(4), dp(22))
         }
-        root.addView(subtitle)
+
+        content.addView(
+            subtitle,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
 
         val options = listOf(
             "HIZLI MESAJ GÖNDER",
@@ -72,45 +90,67 @@ class YellowSafetyActivity : AppCompatActivity() {
         )
 
         options.forEachIndexed { index, label ->
+            val isEmergency = index == 5
+
             val button = TextView(this).apply {
                 text = label
                 textSize = 16f
-                setTextColor(
-                    if (index == 5) Color.WHITE else Color.BLACK
-                )
-                setTypeface(null, Typeface.BOLD)
+                typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
-                setPadding(dp(12), dp(18), dp(12), dp(18))
+                setTextColor(
+                    if (isEmergency) Color.WHITE
+                    else Color.rgb(48, 30, 0)
+                )
+                setPadding(dp(12), dp(17), dp(12), dp(17))
+                elevation = dp(7).toFloat()
+
                 background = GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    if (index == 5) {
+                    if (isEmergency) {
                         intArrayOf(
-                            Color.rgb(230, 55, 35),
-                            Color.rgb(155, 15, 15)
+                            Color.rgb(255, 95, 75),
+                            Color.rgb(190, 20, 15),
+                            Color.rgb(105, 5, 5)
                         )
                     } else {
                         intArrayOf(
-                            Color.rgb(255, 240, 170),
-                            gold,
-                            darkGold
+                            Color.rgb(255, 250, 190),
+                            Color.rgb(255, 207, 55),
+                            Color.rgb(190, 125, 0)
                         )
                     }
                 ).apply {
-                    cornerRadius = dp(18).toFloat()
-                    setStroke(dp(2), Color.rgb(255, 222, 120))
+                    cornerRadius = dp(17).toFloat()
+                    setStroke(
+                        dp(2),
+                        if (isEmergency) {
+                            Color.rgb(255, 175, 145)
+                        } else {
+                            Color.rgb(255, 232, 145)
+                        }
+                    )
                 }
-                elevation = dp(7).toFloat()
+
                 isClickable = true
                 isFocusable = true
+
                 setOnClickListener {
-                    if (index == 5) {
-                        finish()
-                    } else {
-                        android.widget.Toast.makeText(
-                            this@YellowSafetyActivity,
-                            "Bu seçenek sonraki aşamada etkinleştirilecek.",
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
+                    when (index) {
+                        5 -> {
+                            Toast.makeText(
+                                this@YellowSafetyActivity,
+                                "Acil durum için ana ekrandaki kırmızı butonu kullanın.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+
+                        else -> {
+                            Toast.makeText(
+                                this@YellowSafetyActivity,
+                                "Bu seçenek sonraki aşamada etkinleştirilecek.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
             }
@@ -119,22 +159,39 @@ class YellowSafetyActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                bottomMargin = dp(13)
+                bottomMargin = dp(15)
             }
-            root.addView(button, params)
+
+            content.addView(button, params)
         }
 
-        val back = TextView(this).apply {
+        val backButton = TextView(this).apply {
             text = "GERİ DÖN"
             textSize = 15f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
+            typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setPadding(dp(20), dp(14), dp(20), dp(14))
-            setOnClickListener { finish() }
+            setTextColor(Color.WHITE)
+            setPadding(dp(20), dp(13), dp(20), dp(13))
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(45, 38, 25))
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), Color.rgb(255, 207, 55))
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                finish()
+            }
         }
-        root.addView(back)
 
-        setContentView(scroll)
+        content.addView(
+            backButton,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        setContentView(scrollView)
     }
 }
