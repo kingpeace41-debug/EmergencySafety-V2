@@ -70,26 +70,28 @@ class SirenManager(private val context: Context) {
             mediaPlayer = null
         }
 
-        // Titreşim
+        // Komut alındığını bildiren tek kısa titreşim.
         try {
             vibrator = context.getSystemService(
                 Context.VIBRATOR_SERVICE
             ) as Vibrator
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val pattern = longArrayOf(0, 500, 200, 500)
                 vibrator?.vibrate(
-                    VibrationEffect.createWaveform(pattern, 0)
+                    VibrationEffect.createOneShot(
+                        120,
+                        VibrationEffect.DEFAULT_AMPLITUDE
+                    )
                 )
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(longArrayOf(0, 500, 200, 500), 0)
+                vibrator?.vibrate(120)
             }
         } catch (e: Exception) {
             Log.e("SirenManager", "Titreşim hatası: ${e.message}")
         }
 
-        // Kamera flaşı
+        // Kamera flaşı.
         try {
             cameraManager = context.getSystemService(
                 Context.CAMERA_SERVICE
@@ -132,6 +134,7 @@ class SirenManager(private val context: Context) {
             mediaPlayer = null
         }
 
+        // Varsa titreşimi iptal et; sürekli titreşim artık kullanılmıyor.
         try {
             vibrator?.cancel()
             vibrator = null
