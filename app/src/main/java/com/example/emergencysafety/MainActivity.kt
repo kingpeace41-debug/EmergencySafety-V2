@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
         checkPermissionsAndStartService()
         checkOverlayPermission()
 
+        // KIRMIZI BUTON: Mevcut davranış korunuyor.
         val btnRedAlertId =
             resources.getIdentifier("btnRedAlert", "id", packageName)
 
@@ -54,6 +55,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // SARI BUTON: Yeni güvenlik menüsünü açar.
+        val btnYellowAlertId =
+            resources.getIdentifier("btnYellowAlert", "id", packageName)
+
+        if (btnYellowAlertId != 0) {
+            findViewById<View>(btnYellowAlertId)?.setOnClickListener {
+                vibrateOnClick()
+                startActivity(
+                    Intent(this, YellowSafetyActivity::class.java)
+                )
+            }
+        }
+
+        // SÜREKLİ DİNLEME: Mevcut davranış korunuyor.
         val btnToggleListeningId =
             resources.getIdentifier("btnToggleListening", "id", packageName)
 
