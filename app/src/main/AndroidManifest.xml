@@ -27,6 +27,10 @@
         </activity>
 
         <activity
+            android:name=".YellowSafetyActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".FakeDeadActivity"
             android:exported="false"
             android:showOnLockScreen="true"
