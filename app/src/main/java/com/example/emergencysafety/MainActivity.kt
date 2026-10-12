@@ -19,6 +19,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
 
     private val volumeDownHandler = Handler(Looper.getMainLooper())
     private var volumeDownRunnable: Runnable? = null
+    private lateinit var wolfBackground: ImageView
 
     private val instructionPrefs by lazy {
         getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
@@ -41,10 +43,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Kurt görselini kayıtlı moda göre başlat.
+        wolfBackground = findViewById(R.id.wolfBackground)
+        updateWolfImage(
+            getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+                .getBoolean("is_voice_active", true),
+            false
+        )
+
         checkPermissionsAndStartService()
         checkOverlayPermission()
 
-        // KIRMIZI BUTON: Mevcut davranış korunuyor.
         val btnRedAlertId =
             resources.getIdentifier("btnRedAlert", "id", packageName)
 
@@ -55,20 +64,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // SARI BUTON: Yeni güvenlik menüsünü açar.
         val btnYellowAlertId =
             resources.getIdentifier("btnYellowAlert", "id", packageName)
 
         if (btnYellowAlertId != 0) {
             findViewById<View>(btnYellowAlertId)?.setOnClickListener {
                 vibrateOnClick()
-                startActivity(
-                    Intent(this, YellowSafetyActivity::class.java)
-                )
+                startActivity(Intent(this, YellowSafetyActivity::class.java))
             }
         }
 
-        // SÜREKLİ DİNLEME: Mevcut davranış korunuyor.
         val btnToggleListeningId =
             resources.getIdentifier("btnToggleListening", "id", packageName)
 
@@ -78,6 +83,42 @@ class MainActivity : AppCompatActivity() {
                 toggleVoiceService()
             }
         }
+
+        // Kurt alanına dokununca da dinleme modu değişir.
+        findViewById<View>(R.id.wolfTouchArea)?.setOnClickListener {
+            vibrateOnClick()
+            toggleVoiceService()
+        }
+    }
+
+    private fun updateWolfImage(active: Boolean, animate: Boolean = true) {
+        if (!::wolfBackground.isInitialized) return
+
+        val imageRes = if (active) {
+            R.drawable.wolf_active
+        } else {
+            R.drawable.wolf_passive
+        }
+
+        wolfBackground.animate().cancel()
+
+        if (!animate) {
+            wolfBackground.setImageResource(imageRes)
+            wolfBackground.alpha = 1f
+            return
+        }
+
+        wolfBackground.animate()
+            .alpha(0.15f)
+            .setDuration(350)
+            .withEndAction {
+                wolfBackground.setImageResource(imageRes)
+                wolfBackground.animate()
+                    .alpha(1f)
+                    .setDuration(650)
+                    .start()
+            }
+            .start()
     }
 
     private fun openRedMenuWithInstruction() {
@@ -94,9 +135,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openRedSettings() {
-        startActivity(
-            Intent(this, SettingsCategoriesActivity::class.java)
-        )
+        startActivity(Intent(this, SettingsCategoriesActivity::class.java))
     }
 
     private fun showRedInstructions() {
@@ -203,10 +242,7 @@ class MainActivity : AppCompatActivity() {
                 setOnClickListener {
                     if (dontShowCheckbox.isChecked) {
                         instructionPrefs.edit()
-                            .putBoolean(
-                                "dont_show_red_instructions",
-                                true
-                            )
+                            .putBoolean("dont_show_red_instructions", true)
                             .apply()
                     }
 
@@ -226,30 +262,29 @@ class MainActivity : AppCompatActivity() {
         val isCurrentlyActive =
             sharedPref.getBoolean("is_voice_active", true)
 
-        if (isCurrentlyActive) {
-            stopVoiceService()
-            sharedPref.edit()
-                .putBoolean("is_voice_active", false)
-                .apply()
+        val newActiveState = !isCurrentlyActive
 
-            Toast.makeText(
-                this,
-                "Sürekli Dinleme KAPATILDI (Pasif Mod)",
-                Toast.LENGTH_LONG
-            ).show()
-        } else {
-            sharedPref.edit()
-                .putBoolean("is_voice_active", true)
-                .apply()
+        sharedPref.edit()
+            .putBoolean("is_voice_active", newActiveState)
+            .apply()
 
+        if (newActiveState) {
             startVoiceService()
-
             Toast.makeText(
                 this,
                 "Sürekli Dinleme BAŞLATILDI (Aktif Mod)",
                 Toast.LENGTH_LONG
             ).show()
+        } else {
+            stopVoiceService()
+            Toast.makeText(
+                this,
+                "Sürekli Dinleme KAPATILDI (Pasif Mod)",
+                Toast.LENGTH_LONG
+            ).show()
         }
+
+        updateWolfImage(newActiveState)
     }
 
     private fun vibrateOnClick() {
