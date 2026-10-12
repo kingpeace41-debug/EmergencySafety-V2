@@ -16,9 +16,9 @@
         <ImageView
             android:id="@+id/wolfLogo"
             android:layout_width="match_parent"
-            android:layout_height="230dp"
+            android:layout_height="300dp"
             android:layout_marginTop="2dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="0dp"
             android:contentDescription="Emergency Safety kurt kalkanı"
             android:scaleType="fitCenter"
             android:adjustViewBounds="true"
