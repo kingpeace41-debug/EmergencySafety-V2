@@ -27,7 +27,7 @@
         <!-- ÜÇ GÖRSELLİ BUTON -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="280dp"
+            android:layout_height="220dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:weightSum="3">
@@ -47,7 +47,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:src="@drawable/button_red"
-                    android:scaleType="fitXY"
+                    android:scaleType="fitCenter"
                     android:contentDescription="Acil durum kırmızı butonu"
                     android:importantForAccessibility="no" />
             </FrameLayout>
@@ -68,7 +68,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:src="@drawable/button_yellow"
-                    android:scaleType="fitXY"
+                    android:scaleType="fitCenter"
                     android:contentDescription="Uyarı sarı butonu"
                     android:importantForAccessibility="no" />
             </FrameLayout>
@@ -88,7 +88,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:src="@drawable/button_blue"
-                    android:scaleType="fitXY"
+                    android:scaleType="fitCenter"
                     android:contentDescription="Bilgi mavi butonu"
                     android:importantForAccessibility="no" />
             </FrameLayout>
@@ -114,7 +114,7 @@
                 android:layout_height="24dp"
                 android:layout_marginStart="10dp"
                 android:layout_marginEnd="10dp"
-                android:contentDescription="Lightning"
+                android:contentDescription="Yıldırım simgesi"
                 android:src="@drawable/emergency_lightning" />
 
             <View
