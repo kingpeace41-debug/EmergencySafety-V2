@@ -10,247 +10,96 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="10dp">
 
-        <!-- KURT KALKANI LOGOSU -->
+        <!-- KURT LOGOSU -->
         <ImageView
             android:id="@+id/wolfLogo"
             android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="12dp"
+            android:layout_height="230dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="8dp"
             android:contentDescription="Emergency Safety kurt kalkanı"
             android:scaleType="fitCenter"
             android:adjustViewBounds="true"
             android:src="@drawable/wolf_passive" />
 
-        <!-- SEÇİM MESAJI -->
+        <!-- ÜÇ GÖRSELLİ BUTON -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="18dp"
-            android:background="@drawable/prompt_background"
+            android:layout_height="280dp"
+            android:orientation="horizontal"
             android:gravity="center"
-            android:orientation="horizontal">
+            android:weightSum="3">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Acil durumunuzu seçin"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- ÜÇ ANA BUTON -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="350dp"
-            android:orientation="horizontal">
-
-            <!-- KIRMIZI -->
-            <androidx.cardview.widget.CardView
+            <!-- KIRMIZI ACİL DURUM -->
+            <FrameLayout
                 android:id="@+id/btnRedAlert"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginEnd="4dp"
+                android:layout_marginEnd="3dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="#8C1014"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="4dp">
+                android:contentDescription="Acil durum">
 
-                <LinearLayout
+                <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical"
-                    android:padding="10dp">
+                    android:src="@drawable/button_red"
+                    android:scaleType="fitXY"
+                    android:contentDescription="Acil durum kırmızı butonu"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
 
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        android:layout_marginTop="16dp"
-                        app:cardBackgroundColor="#E53935"
-                        app:cardCornerRadius="30dp"
-                        app:cardElevation="0dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:text="!"
-                            android:textColor="#FFFFFF"
-                            android:textSize="36sp"
-                            android:textStyle="bold" />
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:gravity="center"
-                        android:text="ACİL\nDURUM"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="32dp"
-                        android:layout_height="5dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="#4A0000" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="Hemen müdahale gerekiyor"
-                        android:textColor="#E0E0E0"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- SARI -->
-            <androidx.cardview.widget.CardView
+            <!-- SARI UYARI -->
+            <FrameLayout
                 android:id="@+id/btnYellowAlert"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="#C78912"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="4dp">
+                android:contentDescription="Uyarı">
 
-                <LinearLayout
+                <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical"
-                    android:padding="10dp">
+                    android:src="@drawable/button_yellow"
+                    android:scaleType="fitXY"
+                    android:contentDescription="Uyarı sarı butonu"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
 
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        android:layout_marginTop="16dp"
-                        app:cardBackgroundColor="#FBC02D"
-                        app:cardCornerRadius="30dp"
-                        app:cardElevation="0dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:text="!"
-                            android:textColor="#000000"
-                            android:textSize="36sp"
-                            android:textStyle="bold" />
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:gravity="center"
-                        android:text="UYARI"
-                        android:textColor="#000000"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="32dp"
-                        android:layout_height="5dp"
-                        android:layout_marginTop="24dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="#614100" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="Dikkat gerektiren durum"
-                        android:textColor="#111111"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- MAVİ -->
-            <androidx.cardview.widget.CardView
+            <!-- MAVİ BİLGİ -->
+            <FrameLayout
                 android:id="@+id/btnGreenAlert"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="3dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="#0E6BA8"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="4dp">
+                android:contentDescription="Bilgi">
 
-                <LinearLayout
+                <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical"
-                    android:padding="10dp">
+                    android:src="@drawable/button_blue"
+                    android:scaleType="fitXY"
+                    android:contentDescription="Bilgi mavi butonu"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
 
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        android:layout_marginTop="16dp"
-                        app:cardBackgroundColor="#29B6F6"
-                        app:cardCornerRadius="30dp"
-                        app:cardElevation="0dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:text="i"
-                            android:textColor="#FFFFFF"
-                            android:textSize="34sp"
-                            android:textStyle="bold" />
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:gravity="center"
-                        android:text="BİLGİ"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="32dp"
-                        android:layout_height="5dp"
-                        android:layout_marginTop="24dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="#003366" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="Bilgi veya destek"
-                        android:textColor="#E0E0E0"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
         </LinearLayout>
 
         <!-- ALT AYIRICI -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="12dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -261,10 +110,10 @@
                 android:background="#55FFFFFF" />
 
             <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
                 android:contentDescription="Lightning"
                 android:src="@drawable/emergency_lightning" />
 
@@ -279,11 +128,11 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:gravity="center"
             android:text="Küçük bir dokunuş,\nbüyük bir fark yaratabilir."
             android:textColor="#FFFFFF"
-            android:textSize="15sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <!-- DİNLEME ŞALTERİ -->
@@ -292,8 +141,8 @@
             android:layout_width="54dp"
             android:layout_height="54dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="10dp"
             android:clickable="true"
             android:focusable="true"
             app:cardBackgroundColor="#F2F4F7"
