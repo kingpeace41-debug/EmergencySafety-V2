@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private val volumeDownHandler = Handler(Looper.getMainLooper())
     private var volumeDownRunnable: Runnable? = null
     private lateinit var wolfBackground: ImageView
+    private var growlPlayer: MediaPlayer? = null
 
     private val instructionPrefs by lazy {
         getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
@@ -43,7 +45,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Kurt görselini kayıtlı moda göre başlat.
         wolfBackground = findViewById(R.id.wolfBackground)
         updateWolfImage(
             getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
@@ -84,11 +85,32 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Kurt alanına dokununca da dinleme modu değişir.
         findViewById<View>(R.id.wolfTouchArea)?.setOnClickListener {
             vibrateOnClick()
             toggleVoiceService()
         }
+    }
+
+    private fun playGrowl() {
+        growlPlayer?.release()
+        growlPlayer = MediaPlayer.create(this, R.raw.kangal_growl)
+
+        growlPlayer?.setOnCompletionListener { player ->
+            player.release()
+            if (growlPlayer === player) {
+                growlPlayer = null
+            }
+        }
+
+        growlPlayer?.setOnErrorListener { player, _, _ ->
+            player.release()
+            if (growlPlayer === player) {
+                growlPlayer = null
+            }
+            true
+        }
+
+        growlPlayer?.start()
     }
 
     private fun updateWolfImage(active: Boolean, animate: Boolean = true) {
@@ -270,6 +292,8 @@ class MainActivity : AppCompatActivity() {
 
         if (newActiveState) {
             startVoiceService()
+            playGrowl()
+
             Toast.makeText(
                 this,
                 "Sürekli Dinleme BAŞLATILDI (Aktif Mod)",
@@ -277,6 +301,7 @@ class MainActivity : AppCompatActivity() {
             ).show()
         } else {
             stopVoiceService()
+
             Toast.makeText(
                 this,
                 "Sürekli Dinleme KAPATILDI (Pasif Mod)",
@@ -445,5 +470,11 @@ class MainActivity : AppCompatActivity() {
                 startVoiceService()
             }
         }
+    }
+
+    override fun onDestroy() {
+        growlPlayer?.release()
+        growlPlayer = null
+        super.onDestroy()
     }
 }
