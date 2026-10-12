@@ -12,65 +12,19 @@
         android:orientation="vertical"
         android:padding="14dp">
 
-        <!-- ========================= -->
-        <!-- ÜST LOGO VE BAŞLIK -->
-        <!-- ========================= -->
-
-        <LinearLayout
+        <!-- KURT KALKANI LOGOSU -->
+        <ImageView
+            android:id="@+id/wolfLogo"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="8dp"
-            android:paddingBottom="12dp">
+            android:layout_height="250dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="Emergency Safety kurt kalkanı"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
+            android:src="@drawable/wolf_passive" />
 
-            <ImageView
-                android:layout_width="105dp"
-                android:layout_height="105dp"
-                android:contentDescription="Emergency Safety"
-                android:src="@drawable/emergency_lightning" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:paddingStart="12dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="EMERGENCY"
-                    android:textColor="#FFFFFF"
-                    android:textSize="25sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SAFETY"
-                    android:textColor="#FF2020"
-                    android:textSize="32sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Güvenliğiniz Önceliğimiz"
-                    android:textColor="#B9D7EF"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-
-        <!-- ========================= -->
         <!-- SEÇİM MESAJI -->
-        <!-- ========================= -->
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="64dp"
@@ -87,24 +41,15 @@
                 android:textColor="#FFFFFF"
                 android:textSize="20sp"
                 android:textStyle="bold" />
-
         </LinearLayout>
 
-
-        <!-- ========================= -->
-        <!-- ÜÇ ANA KART / BUTON -->
-        <!-- ========================= -->
-
+        <!-- ÜÇ ANA BUTON -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="350dp"
             android:orientation="horizontal">
 
-
-            <!-- ===================== -->
-            <!-- KIRMIZI (ACİL DURUM) -->
-            <!-- ===================== -->
-
+            <!-- KIRMIZI -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/btnRedAlert"
                 android:layout_width="0dp"
@@ -166,16 +111,10 @@
                         android:text="Hemen müdahale gerekiyor"
                         android:textColor="#E0E0E0"
                         android:textSize="12sp" />
-
                 </LinearLayout>
-
             </androidx.cardview.widget.CardView>
 
-
-            <!-- ===================== -->
-            <!-- SARI (UYARI) -->
-            <!-- ===================== -->
-
+            <!-- SARI -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/btnYellowAlert"
                 android:layout_width="0dp"
@@ -238,16 +177,10 @@
                         android:text="Dikkat gerektiren durum"
                         android:textColor="#111111"
                         android:textSize="12sp" />
-
                 </LinearLayout>
-
             </androidx.cardview.widget.CardView>
 
-
-            <!-- ===================== -->
-            <!-- MAVİ (BİLGİ) -->
-            <!-- ===================== -->
-
+            <!-- MAVİ -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/btnGreenAlert"
                 android:layout_width="0dp"
@@ -309,18 +242,11 @@
                         android:text="Bilgi veya destek"
                         android:textColor="#E0E0E0"
                         android:textSize="12sp" />
-
                 </LinearLayout>
-
             </androidx.cardview.widget.CardView>
-
         </LinearLayout>
 
-
-        <!-- ========================= -->
-        <!-- ŞİMŞEKLİ ALT AYIRICI -->
-        <!-- ========================= -->
-
+        <!-- ALT AYIRICI -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -347,14 +273,9 @@
                 android:layout_height="1dp"
                 android:layout_weight="1"
                 android:background="#55FFFFFF" />
-
         </LinearLayout>
 
-
-        <!-- ========================= -->
         <!-- ALT SLOGAN -->
-        <!-- ========================= -->
-
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -365,11 +286,7 @@
             android:textSize="15sp"
             android:textStyle="bold" />
 
-
-        <!-- ========================= -->
-        <!-- YENİ SOFT BEYAZ DİNLEME ŞALTERİ (ALT ORTA) -->
-        <!-- ========================= -->
-
+        <!-- DİNLEME ŞALTERİ -->
         <androidx.cardview.widget.CardView
             android:id="@+id/btnToggleListening"
             android:layout_width="54dp"
@@ -390,9 +307,7 @@
                 android:contentDescription="Dinleme Şalteri"
                 android:src="@android:drawable/ic_lock_power_off"
                 app:tint="#222222" />
-
         </androidx.cardview.widget.CardView>
 
     </LinearLayout>
-
 </ScrollView>
