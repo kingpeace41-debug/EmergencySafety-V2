@@ -5,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="#101114">
 
-    <!-- ANA SAYFADAKİYLE AYNI YERLEŞİM MANTIĞI -->
     <ImageView
         android:id="@+id/redPageBackground"
         android:layout_width="match_parent"
@@ -14,13 +13,6 @@
         android:scaleType="fitCenter"
         android:contentDescription="Kırmızı kurt temalı arka plan" />
 
-    <!-- HAFİF KARARTMA -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#33000000" />
-
-    <!-- SAYFA İÇERİĞİ -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -118,7 +110,5 @@
                 android:textSize="13sp" />
 
         </LinearLayout>
-
     </ScrollView>
-
 </FrameLayout>
