@@ -3,35 +3,37 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#171717">
+    android:background="#101114">
 
+    <!-- ANA SAYFADAKİYLE AYNI YERLEŞİM MANTIĞI -->
     <ImageView
         android:id="@+id/redPageBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:src="@drawable/wolf_red"
-        android:scaleType="centerCrop"
-        android:alpha="0.70"
+        android:scaleType="fitCenter"
         android:contentDescription="Kırmızı kurt temalı arka plan" />
 
+    <!-- HAFİF KARARTMA -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#44000000" />
+        android:background="#33000000" />
 
+    <!-- SAYFA İÇERİĞİ -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
+        android:fillViewport="false"
         android:background="@android:color/transparent"
-        android:clipToPadding="true"
+        android:clipToPadding="false"
         android:scrollbars="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
             android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:paddingStart="24dp"
             android:paddingEnd="24dp"
             android:paddingTop="28dp"
