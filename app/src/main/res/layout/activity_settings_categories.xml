@@ -45,7 +45,7 @@
                 android:id="@+id/btnContactMessageSettings"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
-                android:layout_marginTop="220dp"
+                android:layout_marginTop="250dp"
                 android:src="@drawable/red_button_1"
                 android:scaleType="fitCenter"
                 android:clickable="true"
