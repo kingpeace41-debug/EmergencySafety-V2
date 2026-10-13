@@ -46,9 +46,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         wolfBackground = findViewById(R.id.wolfBackground)
+
         updateWolfImage(
             getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-                .getBoolean("is_voice_active", true),
+                .getBoolean("is_voice_active", false),
             false
         )
 
@@ -113,7 +114,10 @@ class MainActivity : AppCompatActivity() {
         growlPlayer?.start()
     }
 
-    private fun updateWolfImage(active: Boolean, animate: Boolean = true) {
+    private fun updateWolfImage(
+        active: Boolean,
+        animate: Boolean = true
+    ) {
         if (!::wolfBackground.isInitialized) return
 
         val imageRes = if (active) {
@@ -157,7 +161,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openRedSettings() {
-        startActivity(Intent(this, SettingsCategoriesActivity::class.java))
+        startActivity(
+            Intent(this, SettingsCategoriesActivity::class.java)
+        )
     }
 
     private fun showRedInstructions() {
@@ -264,7 +270,10 @@ class MainActivity : AppCompatActivity() {
                 setOnClickListener {
                     if (dontShowCheckbox.isChecked) {
                         instructionPrefs.edit()
-                            .putBoolean("dont_show_red_instructions", true)
+                            .putBoolean(
+                                "dont_show_red_instructions",
+                                true
+                            )
                             .apply()
                     }
 
@@ -282,7 +291,7 @@ class MainActivity : AppCompatActivity() {
             getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
         val isCurrentlyActive =
-            sharedPref.getBoolean("is_voice_active", true)
+            sharedPref.getBoolean("is_voice_active", false)
 
         val newActiveState = !isCurrentlyActive
 
@@ -293,20 +302,8 @@ class MainActivity : AppCompatActivity() {
         if (newActiveState) {
             startVoiceService()
             playGrowl()
-
-            Toast.makeText(
-                this,
-                "Sürekli Dinleme BAŞLATILDI (Aktif Mod)",
-                Toast.LENGTH_LONG
-            ).show()
         } else {
             stopVoiceService()
-
-            Toast.makeText(
-                this,
-                "Sürekli Dinleme KAPATILDI (Pasif Mod)",
-                Toast.LENGTH_LONG
-            ).show()
         }
 
         updateWolfImage(newActiveState)
@@ -359,7 +356,7 @@ class MainActivity : AppCompatActivity() {
                 getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
             val isVoiceActive =
-                sharedPref.getBoolean("is_voice_active", true)
+                sharedPref.getBoolean("is_voice_active", false)
 
             if (isVoiceActive) {
                 startVoiceService()
@@ -464,7 +461,7 @@ class MainActivity : AppCompatActivity() {
                 getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
             val isVoiceActive =
-                sharedPref.getBoolean("is_voice_active", true)
+                sharedPref.getBoolean("is_voice_active", false)
 
             if (isVoiceActive) {
                 startVoiceService()
