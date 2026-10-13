@@ -16,10 +16,9 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="false"
+        android:fillViewport="true"
         android:background="@android:color/transparent"
-        android:clipToPadding="false"
-        android:scrollbars="vertical">
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -43,67 +42,43 @@
                 android:shadowColor="#FF3030"
                 android:shadowRadius="10" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:gravity="center"
-                android:text="Düzenlemek istediğiniz kategoriyi seçin"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp" />
-
-            <androidx.cardview.widget.CardView
+            <ImageView
                 android:id="@+id/btnContactMessageSettings"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
-                android:layout_marginTop="44dp"
+                android:layout_marginTop="28dp"
+                android:src="@drawable/red_button_1"
+                android:scaleType="fitCenter"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="#B71C1C"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="8dp">
+                android:contentDescription="Rehber ve mesaj ayarları" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:padding="12dp"
-                    android:text="REHBER VE MESAJ AYARLARI"
-                    android:textColor="#FFFFFF"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
+            <ImageView
                 android:id="@+id/btnVoiceCommandSettings"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
-                android:layout_marginTop="22dp"
+                android:layout_marginTop="18dp"
+                android:src="@drawable/red_button_2"
+                android:scaleType="fitCenter"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="#8E1717"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="8dp">
+                android:contentDescription="Sesli komut ayarları" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:padding="12dp"
-                    android:text="SESLİ KOMUT AYARLARI"
-                    android:textColor="#FFFFFF"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-            </androidx.cardview.widget.CardView>
+            <ImageView
+                android:id="@+id/btnManualEmergencyProtocol"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_marginTop="18dp"
+                android:src="@drawable/red_button_3"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Manuel acil durum protokolünü başlat" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
+                android:layout_marginTop="22dp"
                 android:gravity="center"
                 android:text="Emergency Safety"
                 android:textColor="#CCFFFFFF"
