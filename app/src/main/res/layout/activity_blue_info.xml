@@ -1,76 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/wolf_blue"
-    android:padding="12dp">
+    android:background="#101114">
 
-    <LinearLayout
+    <!-- MAVİ KURT ARKA PLANI -->
+    <ImageView
+        android:id="@+id/bluePageBackground"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:gravity="center">
+        android:layout_height="match_parent"
+        android:src="@drawable/wolf_blue"
+        android:scaleType="fitCenter"
+        android:contentDescription="Mavi kurt temalı arka plan" />
 
-        <ImageButton
-            android:id="@+id/blueButton1"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="6dp"
-            android:src="@drawable/blue_button_1"
-            android:scaleType="fitCenter"
-            android:adjustViewBounds="true"
-            android:background="@android:color/transparent"
-            android:contentDescription="En yakın sağlık kuruluşu" />
-
-        <ImageButton
-            android:id="@+id/blueButton2"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="6dp"
-            android:src="@drawable/blue_button_2"
-            android:scaleType="fitCenter"
-            android:adjustViewBounds="true"
-            android:background="@android:color/transparent"
-            android:contentDescription="En yakın kolluk kuvveti" />
-
-    </LinearLayout>
-
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:gravity="center">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:background="@android:color/transparent"
+        android:clipToPadding="false">
 
-        <ImageButton
-            android:id="@+id/blueButton3"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="6dp"
-            android:src="@drawable/blue_button_3"
-            android:scaleType="fitCenter"
-            android:adjustViewBounds="true"
-            android:background="@android:color/transparent"
-            android:contentDescription="En yakın eczane" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="24dp">
 
-        <ImageButton
-            android:id="@+id/blueButton4"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="6dp"
-            android:src="@drawable/blue_button_4"
-            android:scaleType="fitCenter"
-            android:adjustViewBounds="true"
-            android:background="@android:color/transparent"
-            android:contentDescription="En yakın veteriner" />
+            <!-- SAYFA BAŞLIĞI -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:gravity="center"
+                android:text="MAVİ GÜVENLİK"
+                android:textColor="#FFFFFF"
+                android:textSize="25sp"
+                android:textStyle="bold"
+                android:shadowColor="#49B6FF"
+                android:shadowRadius="10" />
 
-    </LinearLayout>
+            <!-- EN YAKIN SAĞLIK KURULUŞU -->
+            <ImageView
+                android:id="@+id/blueButton1"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_marginTop="250dp"
+                android:src="@drawable/blue_button_1"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="En yakın sağlık kuruluşu" />
 
-</LinearLayout>
+            <!-- EN YAKIN KOLLUK KUVVETİ -->
+            <ImageView
+                android:id="@+id/blueButton2"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_marginTop="2dp"
+                android:src="@drawable/blue_button_2"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="En yakın kolluk kuvveti" />
+
+            <!-- EN YAKIN ECZANE -->
+            <ImageView
+                android:id="@+id/blueButton3"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_marginTop="2dp"
+                android:src="@drawable/blue_button_3"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="En yakın eczane" />
+
+            <!-- EN YAKIN VETERİNER -->
+            <ImageView
+                android:id="@+id/blueButton4"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_marginTop="2dp"
+                android:src="@drawable/blue_button_4"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="En yakın veteriner" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:gravity="center"
+                android:text="Emergency Safety"
+                android:textColor="#CCFFFFFF"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>
