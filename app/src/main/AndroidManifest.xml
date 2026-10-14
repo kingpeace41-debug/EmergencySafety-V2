@@ -29,7 +29,11 @@
         <activity
             android:name=".YellowSafetyActivity"
             android:exported="false" />
-
+                
+        <activity
+            android:name=".BlueInfoActivity"
+            android:exported="false" />
+        
         <activity
             android:name=".FakeDeadActivity"
             android:exported="false"
