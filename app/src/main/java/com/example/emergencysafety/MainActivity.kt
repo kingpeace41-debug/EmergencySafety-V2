@@ -1,3 +1,4 @@
+
 package com.example.emergencysafety
 
 import android.Manifest
@@ -72,7 +73,23 @@ class MainActivity : AppCompatActivity() {
         if (btnYellowAlertId != 0) {
             findViewById<View>(btnYellowAlertId)?.setOnClickListener {
                 vibrateOnClick()
-                startActivity(Intent(this, YellowSafetyActivity::class.java))
+                startActivity(
+                    Intent(this, YellowSafetyActivity::class.java)
+                )
+            }
+        }
+
+        // Mavi bilgi butonu
+        // XML dosyasındaki mevcut kimlik btnGreenAlert olarak korunuyor.
+        val btnBlueAlertId =
+            resources.getIdentifier("btnGreenAlert", "id", packageName)
+
+        if (btnBlueAlertId != 0) {
+            findViewById<View>(btnBlueAlertId)?.setOnClickListener {
+                vibrateOnClick()
+                startActivity(
+                    Intent(this, BlueInfoActivity::class.java)
+                )
             }
         }
 
