@@ -3,7 +3,7 @@ package com.example.emergencysafety
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
@@ -13,19 +13,19 @@ class BlueInfoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_blue_info)
 
-        findViewById<ImageButton>(R.id.blueButton1).setOnClickListener {
+        findViewById<ImageView>(R.id.blueButton1).setOnClickListener {
             openNearbySearch("hastane acil servis")
         }
 
-        findViewById<ImageButton>(R.id.blueButton2).setOnClickListener {
+        findViewById<ImageView>(R.id.blueButton2).setOnClickListener {
             openNearbySearch("polis merkezi jandarma")
         }
 
-        findViewById<ImageButton>(R.id.blueButton3).setOnClickListener {
+        findViewById<ImageView>(R.id.blueButton3).setOnClickListener {
             openNearbySearch("eczane")
         }
 
-        findViewById<ImageButton>(R.id.blueButton4).setOnClickListener {
+        findViewById<ImageView>(R.id.blueButton4).setOnClickListener {
             openNearbySearch("veteriner kliniği")
         }
     }
