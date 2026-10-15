@@ -1,4 +1,3 @@
-
 package com.example.emergencysafety
 
 import android.content.ContentValues
@@ -49,8 +48,9 @@ class VoiceTriggerManager(private val context: Context) {
     private var restartPending = false
     private var restartCount = 0
 
-    // TEŞHİS TESTİ: KOD=7 sonrasında yeniden başlatmayı geçici durdurur.
-    private var pauseAfterNoMatch = true
+    // TEŞHİS TESTİ KAPATILDI:
+    // KOD=7 sonrasında otomatik yeniden deneme yapılabilir.
+    private var pauseAfterNoMatch = false
 
     private fun diagnostic(event: String) {
         val line = "${System.currentTimeMillis()} | " +
@@ -449,8 +449,6 @@ class VoiceTriggerManager(private val context: Context) {
                     diagnostic(
                         "TEST: KOD_7_SONRASI_OTOMATIK_YENIDEN_BASLATMA_DURDU"
                     )
-                    // isListening değerini değiştirmiyoruz.
-                    // Böylece uygulamanın dinleme aç/kapat durumu korunur.
                     return
                 }
 
