@@ -1,3 +1,4 @@
+
 package com.example.emergencysafety
 
 import android.content.ContentValues
@@ -18,8 +19,6 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class VoiceTriggerManager(private val context: Context) {
@@ -71,7 +70,7 @@ class VoiceTriggerManager(private val context: Context) {
 
                         val selection =
                             "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND " +
-                            "${MediaStore.MediaColumns.RELATIVE_PATH}=?"
+                                "${MediaStore.MediaColumns.RELATIVE_PATH}=?"
 
                         val selectionArgs = arrayOf(
                             diagnosticFileName,
@@ -218,6 +217,7 @@ class VoiceTriggerManager(private val context: Context) {
                 )
             )
         }
+
         onRedStopCallback?.let {
             commands.add(
                 VoiceCommand(
@@ -227,6 +227,7 @@ class VoiceTriggerManager(private val context: Context) {
                 )
             )
         }
+
         onSirenStartCallback?.let {
             commands.add(
                 VoiceCommand(
@@ -236,6 +237,7 @@ class VoiceTriggerManager(private val context: Context) {
                 )
             )
         }
+
         onSirenStopCallback?.let {
             commands.add(
                 VoiceCommand(
@@ -353,7 +355,7 @@ class VoiceTriggerManager(private val context: Context) {
             } catch (exception: Exception) {
                 diagnostic(
                     "RECOGNIZER_OLUSTURMA_HATASI: " +
-                    exception.javaClass.simpleName
+                        exception.javaClass.simpleName
                 )
                 isListening = false
                 return
@@ -394,6 +396,7 @@ class VoiceTriggerManager(private val context: Context) {
 
         handler.postDelayed({
             restartPending = false
+
             if (!isListening) {
                 diagnostic("YENIDEN_BASLATMA_IPTAL: DINLEME_KAPALI")
                 return@postDelayed
@@ -402,12 +405,13 @@ class VoiceTriggerManager(private val context: Context) {
             try {
                 restartCount++
                 diagnostic("START_LISTENING_CAGRISI: #$restartCount")
+
                 speechRecognizer?.startListening(recognizerIntent)
                     ?: diagnostic("HATA: RECOGNIZER_NULL")
             } catch (exception: Exception) {
                 diagnostic(
                     "START_LISTENING_HATASI: " +
-                    exception.javaClass.simpleName
+                        exception.javaClass.simpleName
                 )
                 Log.e(tag, "Dinleme başlatılamadı.", exception)
                 scheduleRestart(700)
@@ -436,7 +440,13 @@ class VoiceTriggerManager(private val context: Context) {
 
             override fun onError(error: Int) {
                 diagnostic("DINLEME_HATASI: KOD=$error")
-                scheduleRestart(500)
+
+                if (error == SpeechRecognizer.ERROR_NO_MATCH) {
+                    diagnostic("NO_MATCH: 2000ms SONRA TEKRAR DENE")
+                    scheduleRestart(2000)
+                } else {
+                    scheduleRestart(500)
+                }
             }
 
             override fun onResults(results: Bundle?) {
@@ -458,7 +468,7 @@ class VoiceTriggerManager(private val context: Context) {
                 } catch (exception: Exception) {
                     diagnostic(
                         "SONUC_ISLEME_HATASI: " +
-                        exception.javaClass.simpleName
+                            exception.javaClass.simpleName
                     )
                     Log.e(tag, "Sonuç işlenemedi.", exception)
                 } finally {
@@ -489,8 +499,14 @@ class VoiceTriggerManager(private val context: Context) {
             speechRecognizer?.destroy()
             diagnostic("SPEECH_RECOGNIZER_YOK_EDILDI")
         } catch (exception: Exception) {
-            Log.e(tag, "Ses tanıma kapatılırken hata oluştu.", exception)
-            diagnostic("DURDURMA_HATASI: ${exception.javaClass.simpleName}")
+            Log.e(
+                tag,
+                "Ses tanıma kapatılırken hata oluştu.",
+                exception
+            )
+            diagnostic(
+                "DURDURMA_HATASI: ${exception.javaClass.simpleName}"
+            )
         }
 
         speechRecognizer = null
