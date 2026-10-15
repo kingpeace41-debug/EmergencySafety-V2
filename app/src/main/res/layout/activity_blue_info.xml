@@ -60,7 +60,7 @@
                 android:id="@+id/blueButton2"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="5dp"
                 android:src="@drawable/blue_button_2"
                 android:scaleType="fitCenter"
                 android:clickable="true"
@@ -72,25 +72,14 @@
                 android:id="@+id/blueButton3"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="5dp"
                 android:src="@drawable/blue_button_3"
                 android:scaleType="fitCenter"
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="En yakın eczane" />
 
-            <!-- EN YAKIN VETERİNER -->
-            <ImageView
-                android:id="@+id/blueButton4"
-                android:layout_width="match_parent"
-                android:layout_height="100dp"
-                android:layout_marginTop="2dp"
-                android:src="@drawable/blue_button_4"
-                android:scaleType="fitCenter"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="En yakın veteriner" />
-
+            <!-- ALT YAZI -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
