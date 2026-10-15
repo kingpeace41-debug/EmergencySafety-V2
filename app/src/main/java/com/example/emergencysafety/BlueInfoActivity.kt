@@ -24,10 +24,6 @@ class BlueInfoActivity : AppCompatActivity() {
         findViewById<ImageView>(R.id.blueButton3).setOnClickListener {
             openNearbySearch("eczane")
         }
-
-        findViewById<ImageView>(R.id.blueButton4).setOnClickListener {
-            openNearbySearch("veteriner kliniği")
-        }
     }
 
     private fun openNearbySearch(query: String) {
