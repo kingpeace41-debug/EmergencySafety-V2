@@ -49,6 +49,9 @@ class VoiceTriggerManager(private val context: Context) {
     private var restartPending = false
     private var restartCount = 0
 
+    // TEŞHİS TESTİ: KOD=7 sonrasında yeniden başlatmayı geçici durdurur.
+    private var pauseAfterNoMatch = true
+
     private fun diagnostic(event: String) {
         val line = "${System.currentTimeMillis()} | " +
             "${SystemClock.elapsedRealtime()} | $event\n"
@@ -285,7 +288,6 @@ class VoiceTriggerManager(private val context: Context) {
         val spoken = normalize(text)
         if (spoken.isBlank()) return
 
-        // Konuşma metnini teşhis dosyasına yazmıyoruz.
         diagnostic("TANIMA_METNI_ALINDI")
 
         val commands = getCommands()
@@ -440,6 +442,17 @@ class VoiceTriggerManager(private val context: Context) {
 
             override fun onError(error: Int) {
                 diagnostic("DINLEME_HATASI: KOD=$error")
+
+                if (error == SpeechRecognizer.ERROR_NO_MATCH &&
+                    pauseAfterNoMatch
+                ) {
+                    diagnostic(
+                        "TEST: KOD_7_SONRASI_OTOMATIK_YENIDEN_BASLATMA_DURDU"
+                    )
+                    // isListening değerini değiştirmiyoruz.
+                    // Böylece uygulamanın dinleme aç/kapat durumu korunur.
+                    return
+                }
 
                 if (error == SpeechRecognizer.ERROR_NO_MATCH) {
                     diagnostic("NO_MATCH: 2000ms SONRA TEKRAR DENE")
