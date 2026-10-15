@@ -62,11 +62,7 @@ class YellowSafetyActivity : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.btnYellowSafetySupport)
             .setOnClickListener {
-                Toast.makeText(
-                    this,
-                    "Güvenlik desteğini sonraki aşamada bağlayacağız.",
-                    Toast.LENGTH_LONG
-                ).show()
+                sendSafetySupportMessage()
             }
     }
 
@@ -97,29 +93,10 @@ class YellowSafetyActivity : AppCompatActivity() {
     }
 
     private fun shareLocation() {
-        val phone = getSharedPreferences(
-            prefsName,
-            MODE_PRIVATE
-        ).getString("contact1_phone", "")?.trim().orEmpty()
+        val phone = getFirstContactPhone() ?: return
 
-        if (phone.isBlank()) {
-            showMissingContact()
-            return
-        }
-
-        val fineGranted =
-            hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-
-        val coarseGranted =
-            hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
-
-        if (!fineGranted && !coarseGranted) {
-            locationPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
+        if (!hasLocationPermission()) {
+            requestLocationPermission()
             return
         }
 
@@ -127,22 +104,16 @@ class YellowSafetyActivity : AppCompatActivity() {
     }
 
     private fun getLocationAndShare() {
-        if (
-            !hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) &&
-            !hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
-        ) {
+        if (!hasLocationPermission()) {
             return
         }
 
         val locationManager =
             getSystemService(LOCATION_SERVICE) as LocationManager
 
-        val fineGranted =
-            hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-
         val provider = try {
             when {
-                fineGranted &&
+                hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) &&
                     locationManager.isProviderEnabled(
                         LocationManager.GPS_PROVIDER
                     ) -> LocationManager.GPS_PROVIDER
@@ -157,7 +128,7 @@ class YellowSafetyActivity : AppCompatActivity() {
 
                 else -> null
             }
-        } catch (e: SecurityException) {
+        } catch (_: Exception) {
             null
         }
 
@@ -180,8 +151,7 @@ class YellowSafetyActivity : AppCompatActivity() {
         var completed = false
         lateinit var listener: LocationListener
 
-        lateinit var timeoutRunnable: Runnable
-        timeoutRunnable = Runnable {
+        val timeoutRunnable = Runnable {
             if (!completed) {
                 completed = true
 
@@ -199,7 +169,6 @@ class YellowSafetyActivity : AppCompatActivity() {
         }
 
         listener = object : LocationListener {
-
             override fun onLocationChanged(location: Location) {
                 if (completed) return
 
@@ -211,15 +180,7 @@ class YellowSafetyActivity : AppCompatActivity() {
                 } catch (_: Exception) {
                 }
 
-                val phone = getSharedPreferences(
-                    prefsName,
-                    MODE_PRIVATE
-                ).getString("contact1_phone", "")?.trim().orEmpty()
-
-                if (phone.isBlank()) {
-                    showMissingContact()
-                    return
-                }
+                val phone = getFirstContactPhone() ?: return
 
                 val mapLink =
                     "https://maps.google.com/?q=${location.latitude},${location.longitude}"
@@ -241,19 +202,169 @@ class YellowSafetyActivity : AppCompatActivity() {
 
             handler.postDelayed(timeoutRunnable, 20000L)
 
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             Toast.makeText(
                 this,
                 "Konum izni verilmedi. Ayarlardan izinleri kontrol et.",
                 Toast.LENGTH_LONG
             ).show()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Toast.makeText(
                 this,
                 "Konum alınırken bir hata oluştu.",
                 Toast.LENGTH_LONG
             ).show()
         }
+    }
+
+    private fun sendSafetySupportMessage() {
+        val phone = getFirstContactPhone() ?: return
+
+        if (!hasLocationPermission()) {
+            requestLocationPermission()
+            return
+        }
+
+        val locationManager =
+            getSystemService(LOCATION_SERVICE) as LocationManager
+
+        val provider = try {
+            when {
+                hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) &&
+                    locationManager.isProviderEnabled(
+                        LocationManager.GPS_PROVIDER
+                    ) -> LocationManager.GPS_PROVIDER
+
+                locationManager.isProviderEnabled(
+                    LocationManager.NETWORK_PROVIDER
+                ) -> LocationManager.NETWORK_PROVIDER
+
+                locationManager.isProviderEnabled(
+                    LocationManager.GPS_PROVIDER
+                ) -> LocationManager.GPS_PROVIDER
+
+                else -> null
+            }
+        } catch (_: Exception) {
+            null
+        }
+
+        if (provider == null) {
+            Toast.makeText(
+                this,
+                "Telefonun konum hizmetini açıp tekrar dene.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        Toast.makeText(
+            this,
+            "Güvenlik için güncel konum alınıyor...",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        val handler = Handler(Looper.getMainLooper())
+        var completed = false
+        lateinit var listener: LocationListener
+
+        val timeoutRunnable = Runnable {
+            if (!completed) {
+                completed = true
+
+                try {
+                    locationManager.removeUpdates(listener)
+                } catch (_: Exception) {
+                }
+
+                AlertDialog.Builder(this)
+                    .setTitle("Konum alınamadı")
+                    .setMessage(
+                        "Güvenlik mesajına yanlış konum eklememek için " +
+                        "mesaj açılmadı. Açık alanda veya pencere kenarında " +
+                        "tekrar deneyebilirsin."
+                    )
+                    .setPositiveButton("TAMAM", null)
+                    .show()
+            }
+        }
+
+        listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                if (completed) return
+
+                completed = true
+                handler.removeCallbacks(timeoutRunnable)
+
+                try {
+                    locationManager.removeUpdates(this)
+                } catch (_: Exception) {
+                }
+
+                val currentPhone = getFirstContactPhone() ?: return
+
+                val mapLink =
+                    "https://maps.google.com/?q=${location.latitude},${location.longitude}"
+
+                val message =
+                    "Kendimi güvende hissetmiyorum. " +
+                    "Lütfen konumuma gel ve benimle iletişime geç.\n\n" +
+                    "📍 Konumum:\n$mapLink"
+
+                openWhatsAppMessage(currentPhone, message)
+            }
+        }
+
+        try {
+            locationManager.requestSingleUpdate(
+                provider,
+                listener,
+                Looper.getMainLooper()
+            )
+
+            handler.postDelayed(timeoutRunnable, 25000L)
+
+        } catch (_: SecurityException) {
+            Toast.makeText(
+                this,
+                "Konum izni verilmedi. Telefon ayarlarını kontrol et.",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (_: Exception) {
+            Toast.makeText(
+                this,
+                "Konum alınırken bir hata oluştu.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun getFirstContactPhone(): String? {
+        val phone = getSharedPreferences(
+            prefsName,
+            MODE_PRIVATE
+        ).getString("contact1_phone", "")?.trim().orEmpty()
+
+        if (phone.isBlank()) {
+            showMissingContact()
+            return null
+        }
+
+        return phone
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        return hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) ||
+            hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+
+    private fun requestLocationPermission() {
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
     }
 
     private fun openWhatsAppMessage(
@@ -285,7 +396,7 @@ class YellowSafetyActivity : AppCompatActivity() {
                 "WhatsApp açılamadı. Kurulu olduğunu kontrol et.",
                 Toast.LENGTH_LONG
             ).show()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Toast.makeText(
                 this,
                 "WhatsApp açılamadı. Lütfen tekrar dene.",
