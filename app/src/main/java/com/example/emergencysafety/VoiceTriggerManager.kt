@@ -1,21 +1,35 @@
 package com.example.emergencysafety
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.MediaStore
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class VoiceTriggerManager(private val context: Context) {
+
+    private val tag = "VoiceTriggerManager"
+    private val diagnosticFileName = "EmergencySafety-diagnostics.txt"
+    private val diagnosticLock = Any()
+
+    private var diagnosticUri: Uri? = null
+    private var diagnosticFile: File? = null
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var recognizerIntent: Intent? = null
@@ -34,6 +48,106 @@ class VoiceTriggerManager(private val context: Context) {
 
     private val handler = Handler(Looper.getMainLooper())
     private var restartPending = false
+    private var restartCount = 0
+
+    private fun diagnostic(event: String) {
+        val line = "${System.currentTimeMillis()} | " +
+            "${SystemClock.elapsedRealtime()} | $event\n"
+
+        Log.d(tag, line.trim())
+
+        synchronized(diagnosticLock) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    var uri = diagnosticUri
+
+                    if (uri == null) {
+                        val collection =
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+
+                        val projection = arrayOf(
+                            MediaStore.MediaColumns._ID
+                        )
+
+                        val selection =
+                            "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND " +
+                            "${MediaStore.MediaColumns.RELATIVE_PATH}=?"
+
+                        val selectionArgs = arrayOf(
+                            diagnosticFileName,
+                            Environment.DIRECTORY_DOWNLOADS + "/"
+                        )
+
+                        context.contentResolver.query(
+                            collection,
+                            projection,
+                            selection,
+                            selectionArgs,
+                            null
+                        )?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                val id = cursor.getLong(0)
+                                uri = Uri.withAppendedPath(
+                                    collection,
+                                    id.toString()
+                                )
+                            }
+                        }
+
+                        if (uri == null) {
+                            val values = ContentValues().apply {
+                                put(
+                                    MediaStore.MediaColumns.DISPLAY_NAME,
+                                    diagnosticFileName
+                                )
+                                put(
+                                    MediaStore.MediaColumns.MIME_TYPE,
+                                    "text/plain"
+                                )
+                                put(
+                                    MediaStore.MediaColumns.RELATIVE_PATH,
+                                    Environment.DIRECTORY_DOWNLOADS + "/"
+                                )
+                            }
+
+                            uri = context.contentResolver.insert(
+                                collection,
+                                values
+                            )
+                        }
+
+                        diagnosticUri = uri
+                    }
+
+                    val target = uri
+                        ?: throw IllegalStateException(
+                            "Teşhis dosyası oluşturulamadı"
+                        )
+
+                    context.contentResolver.openOutputStream(
+                        target,
+                        "wa"
+                    )?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
+                        writer.write(line)
+                    } ?: throw IllegalStateException(
+                        "Teşhis dosyası açılamadı"
+                    )
+                } else {
+                    val file = diagnosticFile ?: File(
+                        context.getExternalFilesDir(null)
+                            ?: context.filesDir,
+                        diagnosticFileName
+                    ).also {
+                        diagnosticFile = it
+                    }
+
+                    file.appendText(line, Charsets.UTF_8)
+                }
+            } catch (exception: Exception) {
+                Log.e(tag, "TEŞHİS DOSYASINA YAZILAMADI", exception)
+            }
+        }
+    }
 
     private fun normalize(text: String): String {
         var result = text.lowercase(Locale("tr", "TR"))
@@ -42,14 +156,26 @@ class VoiceTriggerManager(private val context: Context) {
             .trim()
 
         result = result
-            .replace(Regex("(?<!\\p{L})kırk\\s*bir(?!\\p{L})"), "41")
-            .replace(Regex("(?<!\\p{L})kırk\\s*iki(?!\\p{L})"), "42")
+            .replace(
+                Regex("(?<!\\p{L})kırk\\s*bir(?!\\p{L})"),
+                "41"
+            )
+            .replace(
+                Regex("(?<!\\p{L})kırk\\s*iki(?!\\p{L})"),
+                "42"
+            )
 
         return result.replace(Regex("\\s+"), " ").trim()
     }
 
-    private fun getCommand(key: String, defaultValue: String): String {
-        val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+    private fun getCommand(
+        key: String,
+        defaultValue: String
+    ): String {
+        val prefs = context.getSharedPreferences(
+            prefsName,
+            Context.MODE_PRIVATE
+        )
         return normalize(prefs.getString(key, defaultValue) ?: defaultValue)
     }
 
@@ -60,14 +186,17 @@ class VoiceTriggerManager(private val context: Context) {
 
             if (vibrator?.hasVibrator() == true) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                    vibrator.vibrate(
+                        VibrationEffect.createWaveform(pattern, -1)
+                    )
                 } else {
                     @Suppress("DEPRECATION")
                     vibrator.vibrate(pattern, -1)
                 }
             }
         } catch (exception: Exception) {
-            Log.e("VoiceTriggerManager", "Titreşim verilemedi.", exception)
+            Log.e(tag, "Titreşim verilemedi.", exception)
+            diagnostic("TITRESIM_HATASI")
         }
     }
 
@@ -82,22 +211,38 @@ class VoiceTriggerManager(private val context: Context) {
 
         onRedStartCallback?.let {
             commands.add(
-                VoiceCommand("red_start", getCommand("red_start", "kırmızı 41"), it)
+                VoiceCommand(
+                    "red_start",
+                    getCommand("red_start", "kırmızı 41"),
+                    it
+                )
             )
         }
         onRedStopCallback?.let {
             commands.add(
-                VoiceCommand("red_stop", getCommand("red_stop", "kırmızı 42"), it)
+                VoiceCommand(
+                    "red_stop",
+                    getCommand("red_stop", "kırmızı 42"),
+                    it
+                )
             )
         }
         onSirenStartCallback?.let {
             commands.add(
-                VoiceCommand("siren_start", getCommand("siren_start", "siren aç"), it)
+                VoiceCommand(
+                    "siren_start",
+                    getCommand("siren_start", "siren aç"),
+                    it
+                )
             )
         }
         onSirenStopCallback?.let {
             commands.add(
-                VoiceCommand("siren_stop", getCommand("siren_stop", "siren kapat"), it)
+                VoiceCommand(
+                    "siren_stop",
+                    getCommand("siren_stop", "siren kapat"),
+                    it
+                )
             )
         }
 
@@ -105,7 +250,10 @@ class VoiceTriggerManager(private val context: Context) {
             .sortedByDescending { it.phrase.length }
     }
 
-    private fun handleCommand(commandKey: String, action: () -> Unit) {
+    private fun handleCommand(
+        commandKey: String,
+        action: () -> Unit
+    ) {
         val now = SystemClock.elapsedRealtime()
 
         if (pendingCommand == commandKey &&
@@ -114,19 +262,20 @@ class VoiceTriggerManager(private val context: Context) {
             pendingCommand = null
             pendingCommandTime = 0L
 
-            Log.d("VoiceTriggerManager", "Komut doğrulandı: $commandKey")
+            diagnostic("KOMUT_DOGRULANDI: $commandKey")
 
             try {
                 action()
             } catch (exception: Exception) {
-                Log.e("VoiceTriggerManager", "Komut işlemi başarısız oldu.", exception)
+                Log.e(tag, "Komut işlemi başarısız oldu.", exception)
+                diagnostic("KOMUT_ISLEM_HATASI: $commandKey")
             } finally {
                 vibrate(longArrayOf(0, 100, 70, 100))
             }
         } else {
             pendingCommand = commandKey
             pendingCommandTime = now
-            Log.d("VoiceTriggerManager", "İlk algılama; onay bekleniyor: $commandKey")
+            diagnostic("ILK_KOMUT_ALGISI: $commandKey")
         }
     }
 
@@ -134,7 +283,8 @@ class VoiceTriggerManager(private val context: Context) {
         val spoken = normalize(text)
         if (spoken.isBlank()) return
 
-        Log.d("VoiceTriggerManager", "Algılanan: '$text' -> '$spoken'")
+        // Konuşma metnini teşhis dosyasına yazmıyoruz.
+        diagnostic("TANIMA_METNI_ALINDI")
 
         val commands = getCommands()
         if (commands.isEmpty()) return
@@ -179,105 +329,154 @@ class VoiceTriggerManager(private val context: Context) {
         onSirenStartCallback = onSirenStart
         onSirenStopCallback = onSirenStop
 
-        if (isListening && speechRecognizer != null) return
+        if (isListening && speechRecognizer != null) {
+            diagnostic("DINLEME_ZATEN_AKTIF")
+            return
+        }
 
+        diagnostic("DINLEME_BASLATMA_ISTEGI")
         isListening = true
 
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            Log.e("VoiceTriggerManager", "Ses tanıma desteklenmiyor.")
+            diagnostic("HATA: SES_TANIMA_KULLANILAMIYOR")
             isListening = false
             return
         }
 
         if (speechRecognizer == null) {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
-                setRecognitionListener(createRecognitionListener())
+            try {
+                speechRecognizer =
+                    SpeechRecognizer.createSpeechRecognizer(context).apply {
+                        setRecognitionListener(createRecognitionListener())
+                    }
+                diagnostic("SPEECH_RECOGNIZER_OLUSTURULDU")
+            } catch (exception: Exception) {
+                diagnostic(
+                    "RECOGNIZER_OLUSTURMA_HATASI: " +
+                    exception.javaClass.simpleName
+                )
+                isListening = false
+                return
             }
         }
 
-        recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
-            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-        }
+        recognizerIntent =
+            Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
+                putExtra(
+                    RecognizerIntent.EXTRA_CALLING_PACKAGE,
+                    context.packageName
+                )
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            }
 
         scheduleRestart(150)
     }
 
     private fun scheduleRestart(delayMs: Long = 250L) {
-        if (!isListening || restartPending) return
+        if (!isListening) {
+            diagnostic("YENIDEN_BASLATMA_ATLANDI: DINLEME_KAPALI")
+            return
+        }
+
+        if (restartPending) {
+            diagnostic("YENIDEN_BASLATMA_ATLANDI: ZATEN_BEKLIYOR")
+            return
+        }
 
         restartPending = true
+        diagnostic("YENIDEN_BASLATMA_PLANLANDI: ${delayMs}ms")
+
         handler.postDelayed({
             restartPending = false
-            if (!isListening) return@postDelayed
+            if (!isListening) {
+                diagnostic("YENIDEN_BASLATMA_IPTAL: DINLEME_KAPALI")
+                return@postDelayed
+            }
 
             try {
+                restartCount++
+                diagnostic("START_LISTENING_CAGRISI: #$restartCount")
                 speechRecognizer?.startListening(recognizerIntent)
+                    ?: diagnostic("HATA: RECOGNIZER_NULL")
             } catch (exception: Exception) {
-                Log.e("VoiceTriggerManager", "Dinleme başlatılamadı.", exception)
+                diagnostic(
+                    "START_LISTENING_HATASI: " +
+                    exception.javaClass.simpleName
+                )
+                Log.e(tag, "Dinleme başlatılamadı.", exception)
                 scheduleRestart(700)
             }
         }, delayMs)
     }
 
-    private fun createRecognitionListener() = object : RecognitionListener {
+    private fun createRecognitionListener() =
+        object : RecognitionListener {
 
-        override fun onReadyForSpeech(params: Bundle?) {
-            Log.d(
-                "VoiceTriggerManager",
-                "DİNLEME HAZIR: ${SystemClock.elapsedRealtime()}"
-            )
-        }
+            override fun onReadyForSpeech(params: Bundle?) {
+                diagnostic("DINLEME_HAZIR")
+            }
 
-        override fun onBeginningOfSpeech() {}
-        override fun onRmsChanged(rmsdB: Float) {}
-        override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() {}
+            override fun onBeginningOfSpeech() {
+                diagnostic("KONUSMA_BASLADI")
+            }
 
-        override fun onError(error: Int) {
-            Log.e(
-                "VoiceTriggerManager",
-                "DİNLEME HATASI: kod=$error, zaman=${SystemClock.elapsedRealtime()}"
-            )
-            scheduleRestart(500)
-        }
+            override fun onRmsChanged(rmsdB: Float) {}
 
-        override fun onResults(results: Bundle?) {
-            Log.d(
-                "VoiceTriggerManager",
-                "SONUÇ GELDİ: zaman=${SystemClock.elapsedRealtime()}"
-            )
+            override fun onBufferReceived(buffer: ByteArray?) {}
 
-            try {
-                val matches = results?.getStringArrayList(
-                    SpeechRecognizer.RESULTS_RECOGNITION
-                )
+            override fun onEndOfSpeech() {
+                diagnostic("KONUSMA_BITTI")
+            }
 
-                if (matches != null && isListening) {
-                    // En iyi sonuçtan başla; aynı metindeki tekrarları da işle.
-                    for (recognizedText in matches) {
-                        processRecognizedText(recognizedText)
-                        if (recognizedText.isNotBlank()) break
+            override fun onError(error: Int) {
+                diagnostic("DINLEME_HATASI: KOD=$error")
+                scheduleRestart(500)
+            }
+
+            override fun onResults(results: Bundle?) {
+                diagnostic("SONUC_GELDI")
+
+                try {
+                    val matches = results?.getStringArrayList(
+                        SpeechRecognizer.RESULTS_RECOGNITION
+                    )
+
+                    if (matches != null && isListening) {
+                        for (recognizedText in matches) {
+                            processRecognizedText(recognizedText)
+                            if (recognizedText.isNotBlank()) break
+                        }
+                    } else {
+                        diagnostic("SONUC_BOS_VEYA_DINLEME_KAPALI")
                     }
+                } catch (exception: Exception) {
+                    diagnostic(
+                        "SONUC_ISLEME_HATASI: " +
+                        exception.javaClass.simpleName
+                    )
+                    Log.e(tag, "Sonuç işlenemedi.", exception)
+                } finally {
+                    scheduleRestart(250)
                 }
-            } catch (exception: Exception) {
-                Log.e("VoiceTriggerManager", "Sonuç işlenemedi.", exception)
-            } finally {
-                scheduleRestart(250)
+            }
+
+            override fun onPartialResults(partialResults: Bundle?) {
+                diagnostic("KISMİ_SONUC_GELDI")
+            }
+
+            override fun onEvent(eventType: Int, params: Bundle?) {
+                diagnostic("TANIMA_EVENTI: $eventType")
             }
         }
 
-        override fun onPartialResults(partialResults: Bundle?) {}
-        override fun onEvent(eventType: Int, params: Bundle?) {}
-    }
-
     fun stopListening() {
+        diagnostic("DINLEME_DURDURMA_ISTEGI")
         isListening = false
         pendingCommand = null
         pendingCommandTime = 0L
@@ -288,8 +487,10 @@ class VoiceTriggerManager(private val context: Context) {
         try {
             speechRecognizer?.cancel()
             speechRecognizer?.destroy()
+            diagnostic("SPEECH_RECOGNIZER_YOK_EDILDI")
         } catch (exception: Exception) {
-            Log.e("VoiceTriggerManager", "Ses tanıma kapatılırken hata oluştu.", exception)
+            Log.e(tag, "Ses tanıma kapatılırken hata oluştu.", exception)
+            diagnostic("DURDURMA_HATASI: ${exception.javaClass.simpleName}")
         }
 
         speechRecognizer = null
