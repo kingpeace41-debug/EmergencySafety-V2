@@ -229,7 +229,10 @@ class VoiceTriggerManager(private val context: Context) {
     private fun createRecognitionListener() = object : RecognitionListener {
 
         override fun onReadyForSpeech(params: Bundle?) {
-            Log.d("VoiceTriggerManager", "Dinlemeye hazır.")
+            Log.d(
+                "VoiceTriggerManager",
+                "DİNLEME HAZIR: ${SystemClock.elapsedRealtime()}"
+            )
         }
 
         override fun onBeginningOfSpeech() {}
@@ -238,11 +241,19 @@ class VoiceTriggerManager(private val context: Context) {
         override fun onEndOfSpeech() {}
 
         override fun onError(error: Int) {
-            Log.e("VoiceTriggerManager", "Ses tanıma hatası: $error")
+            Log.e(
+                "VoiceTriggerManager",
+                "DİNLEME HATASI: kod=$error, zaman=${SystemClock.elapsedRealtime()}"
+            )
             scheduleRestart(500)
         }
 
         override fun onResults(results: Bundle?) {
+            Log.d(
+                "VoiceTriggerManager",
+                "SONUÇ GELDİ: zaman=${SystemClock.elapsedRealtime()}"
+            )
+
             try {
                 val matches = results?.getStringArrayList(
                     SpeechRecognizer.RESULTS_RECOGNITION
