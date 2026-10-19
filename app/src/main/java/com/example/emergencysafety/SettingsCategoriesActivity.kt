@@ -1,3 +1,4 @@
+
 package com.example.emergencysafety
 
 import android.content.Intent
@@ -49,7 +50,6 @@ class SettingsCategoriesActivity : AppCompatActivity() {
 
     private fun showManualProtocolConfirmation() {
         val density = resources.displayMetrics.density
-
         fun dp(value: Int): Int = (value * density + 0.5f).toInt()
 
         val content = LinearLayout(this).apply {
@@ -67,7 +67,6 @@ class SettingsCategoriesActivity : AppCompatActivity() {
 
                 Acil durum protokolünü başlatmak istiyor musunuz?
             """.trimIndent()
-
             textSize = 16f
             setTextColor(Color.rgb(40, 40, 40))
             setLineSpacing(dp(4).toFloat(), 1.0f)
@@ -92,7 +91,6 @@ class SettingsCategoriesActivity : AppCompatActivity() {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).apply {
                 setTextColor(Color.rgb(190, 32, 43))
                 setTypeface(null, Typeface.BOLD)
-
                 setOnClickListener {
                     dialog.dismiss()
                     beginMessageSending()
@@ -109,8 +107,7 @@ class SettingsCategoriesActivity : AppCompatActivity() {
     private fun beginMessageSending() {
         val prefs = getSharedPreferences(contactPrefsName, MODE_PRIVATE)
         val message = prefs.getString("emergency_message", "")
-            ?.trim()
-            .orEmpty()
+            ?.trim().orEmpty()
 
         if (message.isBlank()) {
             Toast.makeText(
@@ -123,12 +120,9 @@ class SettingsCategoriesActivity : AppCompatActivity() {
 
         val contacts = (1..3).mapNotNull { index ->
             val phone = prefs.getString("contact${index}_phone", "")
-                ?.trim()
-                .orEmpty()
-
+                ?.trim().orEmpty()
             val name = prefs.getString("contact${index}_name", "")
-                ?.trim()
-                .orEmpty()
+                ?.trim().orEmpty()
 
             if (phone.isNotBlank()) {
                 Pair(name.ifBlank { "Kişi $index" }, phone)
@@ -151,8 +145,7 @@ class SettingsCategoriesActivity : AppCompatActivity() {
 
         val savedApiKey = connectionPrefs
             .getString("worker_api_key", "")
-            ?.trim()
-            .orEmpty()
+            ?.trim().orEmpty()
 
         if (savedApiKey.isBlank()) {
             showApiKeyDialog(message, contacts)
@@ -179,9 +172,12 @@ class SettingsCategoriesActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("İlk bağlantı ayarı")
+            .setTitle("Worker bağlantı anahtarı")
             .setMessage(
-                "Cloudflare Worker'da oluşturduğun APP_API_KEY değerini buraya gir. Bu anahtarı sohbet mesajına yazma. Anahtar bu telefondaki uygulama ayarlarında saklanacak. Bu yöntem yalnızca kişisel test içindir; uygulama başkalarına dağıtılacaksa yeterince güvenli değildir."
+                "Cloudflare Worker'da kayıtlı APP_API_KEY değerini gir. " +
+                "Bu anahtarı sohbet mesajına yazma. Anahtar telefonda " +
+                "saklanır. Bu yöntem kişisel test içindir; uygulama " +
+                "başkalarına dağıtılacaksa yeterince güvenli değildir."
             )
             .setView(container)
             .setPositiveButton("KAYDET VE DENE") { _, _ ->
@@ -221,6 +217,7 @@ class SettingsCategoriesActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.Main).launch {
             var succeeded = 0
+            var apiKeyRejected = false
             val errors = mutableListOf<String>()
 
             for ((name, phone) in contacts) {
@@ -245,11 +242,43 @@ class SettingsCategoriesActivity : AppCompatActivity() {
                         }
                     },
                     onFailure = { error ->
-                        errors.add(
-                            "$name: ${error.message ?: "gönderilemedi"}"
-                        )
+                        val errorText = error.message.orEmpty()
+
+                        if (errorText.contains("HTTP 401")) {
+                            apiKeyRejected = true
+                        } else {
+                            errors.add(
+                                "$name: ${error.message ?: "gönderilemedi"}"
+                            )
+                        }
                     }
                 )
+
+                if (apiKeyRejected) break
+            }
+
+            if (apiKeyRejected) {
+                getSharedPreferences(
+                    connectionPrefsName,
+                    MODE_PRIVATE
+                ).edit()
+                    .remove("worker_api_key")
+                    .apply()
+
+                AlertDialog.Builder(this@SettingsCategoriesActivity)
+                    .setTitle("API anahtarı kabul edilmedi")
+                    .setMessage(
+                        "Girilen anahtar Cloudflare'daki APP_API_KEY ile " +
+                        "eşleşmiyor. Eski anahtar bu telefondan silindi. " +
+                        "Cloudflare'da kayıtlı doğru anahtarı girmen gerekiyor."
+                    )
+                    .setPositiveButton("YENİDEN GİR") { _, _ ->
+                        showApiKeyDialog(message, contacts)
+                    }
+                    .setNegativeButton("DAHA SONRA", null)
+                    .show()
+
+                return@launch
             }
 
             val summary = buildString {
