@@ -9,10 +9,19 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import android.graphics.Color
 import android.graphics.Typeface
+import android.text.InputType
+import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class SettingsCategoriesActivity : AppCompatActivity() {
+
+    private val contactPrefsName = "EmergencyContactSettings"
+    private val connectionPrefsName = "EmergencySafetyConnection"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,20 +30,14 @@ class SettingsCategoriesActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnContactMessageSettings)
             .setOnClickListener {
                 startActivity(
-                    Intent(
-                        this,
-                        ContactMessageSettingsActivity::class.java
-                    )
+                    Intent(this, ContactMessageSettingsActivity::class.java)
                 )
             }
 
         findViewById<View>(R.id.btnVoiceCommandSettings)
             .setOnClickListener {
                 startActivity(
-                    Intent(
-                        this,
-                        VoiceCommandSettingsActivity::class.java
-                    )
+                    Intent(this, VoiceCommandSettingsActivity::class.java)
                 )
             }
 
@@ -45,31 +48,24 @@ class SettingsCategoriesActivity : AppCompatActivity() {
     }
 
     private fun showManualProtocolConfirmation() {
-
         val density = resources.displayMetrics.density
 
-        fun dp(value: Int): Int =
-            (value * density + 0.5f).toInt()
+        fun dp(value: Int): Int = (value * density + 0.5f).toInt()
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(
-                dp(22),
-                dp(16),
-                dp(22),
-                dp(12)
-            )
+            setPadding(dp(22), dp(16), dp(22), dp(12))
         }
 
         val message = TextView(this).apply {
             text = """
                 ACİL DURUM PROTOKOLÜ
 
-                Onay butonuna tekrar basmanız hâlinde acil durum protokolü başlatılacaktır.
+                İkinci onaydan sonra kaydettiğiniz acil durum mesajı belirlediğiniz kişilere WhatsApp üzerinden gönderilmeye çalışılacaktır.
 
-                Protokol kapsamında, uygulamada gerekli ayarlar ve izinler sağlandığında belirlediğiniz kişilere acil durum mesajınızın ve konumunuzun gönderilmesi; belirli aralıklarla fotoğraf ve ses kaydı alınarak aynı kişilere iletilmesi amaçlanmaktadır.
+                Bu işlem fotoğraf çekmez, ses kaydı yapmaz ve ekranı karartmaz. Gönderim internet bağlantısına, Worker/Meta ayarlarına ve WhatsApp test hesabı kısıtlamalarına bağlıdır.
 
-                Acil durum protokolünü gerçekten başlatmak istiyor musunuz?
+                Acil durum protokolünü başlatmak istiyor musunuz?
             """.trimIndent()
 
             textSize = 16f
@@ -93,28 +89,193 @@ class SettingsCategoriesActivity : AppCompatActivity() {
             .create()
 
         dialog.setOnShowListener {
-            dialog.getButton(
-                AlertDialog.BUTTON_POSITIVE
-            ).apply {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).apply {
                 setTextColor(Color.rgb(190, 32, 43))
                 setTypeface(null, Typeface.BOLD)
 
                 setOnClickListener {
                     dialog.dismiss()
-
-                    Toast.makeText(
-                        this@SettingsCategoriesActivity,
-                        "Onay alındı. Protokol işlemleri henüz etkinleştirilmedi.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    beginMessageSending()
                 }
             }
 
-            dialog.getButton(
-                AlertDialog.BUTTON_NEGATIVE
-            ).setTextColor(Color.DKGRAY)
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(Color.DKGRAY)
         }
 
         dialog.show()
+    }
+
+    private fun beginMessageSending() {
+        val prefs = getSharedPreferences(contactPrefsName, MODE_PRIVATE)
+        val message = prefs.getString("emergency_message", "")
+            ?.trim()
+            .orEmpty()
+
+        if (message.isBlank()) {
+            Toast.makeText(
+                this,
+                "Önce Kişi ve Mesaj Ayarları bölümünden acil durum mesajını kaydedin.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        val contacts = (1..3).mapNotNull { index ->
+            val phone = prefs.getString("contact${index}_phone", "")
+                ?.trim()
+                .orEmpty()
+
+            val name = prefs.getString("contact${index}_name", "")
+                ?.trim()
+                .orEmpty()
+
+            if (phone.isNotBlank()) {
+                Pair(name.ifBlank { "Kişi $index" }, phone)
+            } else {
+                null
+            }
+        }
+
+        if (contacts.isEmpty()) {
+            Toast.makeText(
+                this,
+                "Önce en az bir acil durum kişisinin telefonunu kaydedin.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        val connectionPrefs =
+            getSharedPreferences(connectionPrefsName, MODE_PRIVATE)
+
+        val savedApiKey = connectionPrefs
+            .getString("worker_api_key", "")
+            ?.trim()
+            .orEmpty()
+
+        if (savedApiKey.isBlank()) {
+            showApiKeyDialog(message, contacts)
+        } else {
+            sendMessages(savedApiKey, message, contacts)
+        }
+    }
+
+    private fun showApiKeyDialog(
+        message: String,
+        contacts: List<Pair<String, String>>
+    ) {
+        val input = EditText(this).apply {
+            hint = "Cloudflare APP_API_KEY"
+            inputType = InputType.TYPE_CLASS_TEXT or
+                InputType.TYPE_TEXT_VARIATION_PASSWORD
+            setSingleLine(true)
+        }
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 8, 48, 0)
+            addView(input)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("İlk bağlantı ayarı")
+            .setMessage(
+                "Cloudflare Worker'da oluşturduğun APP_API_KEY değerini buraya gir. Bu anahtarı sohbet mesajına yazma. Anahtar bu telefondaki uygulama ayarlarında saklanacak. Bu yöntem yalnızca kişisel test içindir; uygulama başkalarına dağıtılacaksa yeterince güvenli değildir."
+            )
+            .setView(container)
+            .setPositiveButton("KAYDET VE DENE") { _, _ ->
+                val apiKey = input.text.toString().trim()
+
+                if (apiKey.isBlank()) {
+                    Toast.makeText(
+                        this,
+                        "API anahtarı boş olamaz.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    getSharedPreferences(
+                        connectionPrefsName,
+                        MODE_PRIVATE
+                    ).edit()
+                        .putString("worker_api_key", apiKey)
+                        .apply()
+
+                    sendMessages(apiKey, message, contacts)
+                }
+            }
+            .setNegativeButton("İPTAL", null)
+            .show()
+    }
+
+    private fun sendMessages(
+        apiKey: String,
+        message: String,
+        contacts: List<Pair<String, String>>
+    ) {
+        Toast.makeText(
+            this,
+            "WhatsApp mesajları gönderiliyor…",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        CoroutineScope(Dispatchers.Main).launch {
+            var succeeded = 0
+            val errors = mutableListOf<String>()
+
+            for ((name, phone) in contacts) {
+                val result = WhatsAppWorkerClient.sendMessage(
+                    phoneNumber = phone,
+                    message = message,
+                    apiKey = apiKey
+                )
+
+                result.fold(
+                    onSuccess = { response ->
+                        val json = try {
+                            JSONObject(response)
+                        } catch (_: Exception) {
+                            JSONObject()
+                        }
+
+                        if (json.optBoolean("success", false)) {
+                            succeeded++
+                        } else {
+                            errors.add("$name: beklenmeyen yanıt")
+                        }
+                    },
+                    onFailure = { error ->
+                        errors.add(
+                            "$name: ${error.message ?: "gönderilemedi"}"
+                        )
+                    }
+                )
+            }
+
+            val summary = buildString {
+                append("Başarılı gönderim isteği: $succeeded / ${contacts.size}")
+
+                if (errors.isNotEmpty()) {
+                    append("\n")
+                    append(errors.take(3).joinToString("\n"))
+
+                    if (errors.size > 3) {
+                        append("\nDiğer hatalar da oluştu.")
+                    }
+                }
+            }
+
+            AlertDialog.Builder(this@SettingsCategoriesActivity)
+                .setTitle(
+                    if (succeeded == contacts.size) {
+                        "Gönderim isteği kabul edildi"
+                    } else {
+                        "Gönderim sonucu"
+                    }
+                )
+                .setMessage(summary)
+                .setPositiveButton("TAMAM", null)
+                .show()
+        }
     }
 }
