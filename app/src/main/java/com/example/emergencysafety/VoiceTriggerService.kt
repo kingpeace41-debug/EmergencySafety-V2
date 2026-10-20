@@ -1,4 +1,3 @@
-
 package com.example.emergencysafety
 
 import android.app.Notification
@@ -63,10 +62,10 @@ class VoiceTriggerService : Service() {
     }
 
     private fun triggerRedCode() {
-        // Sesli protokol doğrulanınca kayıtlı mesajları gönderme girişimi.
+        Log.i(TAG, "Kırmızı kod doğrulandı; acil mesaj gönderimi başlatılıyor.")
+
         sendEmergencyMessages()
 
-        // Önceki davranışı koru: ekranı karart.
         val intent = Intent(this, FakeDeadActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -118,25 +117,19 @@ class VoiceTriggerService : Service() {
 
         if (message.isBlank()) {
             Log.e(TAG, "Gönderim durdu: Acil durum mesajı kaydedilmemiş.")
-            updateNotification(
-                "Acil durum mesajı ayarlanmamış."
-            )
+            updateNotification("Acil durum mesajı ayarlanmamış.")
             return
         }
 
         if (contacts.isEmpty()) {
             Log.e(TAG, "Gönderim durdu: Acil durum kişisi bulunamadı.")
-            updateNotification(
-                "Acil durum kişileri ayarlanmamış."
-            )
+            updateNotification("Acil durum kişileri ayarlanmamış.")
             return
         }
 
         if (apiKey.isBlank()) {
             Log.e(TAG, "Gönderim durdu: Worker anahtarı bulunamadı.")
-            updateNotification(
-                "Worker bağlantı ayarı eksik."
-            )
+            updateNotification("Worker bağlantı ayarı eksik.")
             return
         }
 
@@ -218,23 +211,30 @@ class VoiceTriggerService : Service() {
         }
 
         return when {
-            // Türkiye numarası zaten ülke koduyla yazılmış.
             digits.startsWith("90") && digits.length == 12 -> digits
 
-            // 0532... biçimindeki 11 haneli Türkiye numarası.
             digits.startsWith("0") && digits.length == 11 ->
                 "90${digits.drop(1)}"
 
-            // 532... biçimindeki 10 haneli Türkiye cep telefonu.
             digits.startsWith("5") && digits.length == 10 ->
                 "90$digits"
 
-            // Diğer ülke kodlarını değiştirme.
             else -> digits
         }
     }
 
     private fun stopRedCode() {
+        Log.i(TAG, "Kırmızı kod durduruluyor; sesli dinleme kapatılacak.")
+
+        // Ana ekrandaki sesli dinleme ayarını kapat.
+        getSharedPreferences(
+            "AppSettings",
+            Context.MODE_PRIVATE
+        ).edit()
+            .putBoolean("is_voice_active", false)
+            .apply()
+
+        // Karartılmış ekranı kapatma sinyali.
         val stopBroadcast =
             Intent("com.example.emergencysafety.CLOSE_FAKE_DEAD").apply {
                 setPackage(packageName)
@@ -253,7 +253,14 @@ class VoiceTriggerService : Service() {
             putExtra("EXTRA_CLOSE", true)
         }
 
-        startActivity(closeIntent)
+        // Ekran kapatma başarısız olsa bile servisi durdur.
+        try {
+            startActivity(closeIntent)
+        } catch (error: Exception) {
+            Log.e(TAG, "Kırmızı ekran kapatılamadı.", error)
+        } finally {
+            stopSelf()
+        }
     }
 
     private fun triggerSirenCode() {
