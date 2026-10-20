@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var wolfBackground: ImageView
     private var growlPlayer: MediaPlayer? = null
 
+    // Mikrofon durumu ile kırmızı mod durumu birbirinden ayrıdır.
     private var redModeActive = false
 
     private val redModeReceiver = object : BroadcastReceiver() {
@@ -49,14 +50,8 @@ class MainActivity : AppCompatActivity() {
 
             redModeActive = intent.getBooleanExtra("RED_MODE_ACTIVE", false)
 
-            // Kırmızı mod kapanınca kurt görselini,
-            // sesli sistemin mevcut durumuna göre güncelle.
-            val voiceActive = getSharedPreferences(
-                "AppSettings",
-                Context.MODE_PRIVATE
-            ).getBoolean("is_voice_active", false)
-
-            updateWolfImage(voiceActive)
+            // Kurt yalnızca kırmızı modun durumuna göre değişir.
+            updateWolfImage(redModeActive)
         }
     }
 
@@ -70,11 +65,9 @@ class MainActivity : AppCompatActivity() {
 
         wolfBackground = findViewById(R.id.wolfBackground)
 
-        updateWolfImage(
-            getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-                .getBoolean("is_voice_active", false),
-            false
-        )
+        // Kırmızı mod uygulama yeniden açıldığında varsayılan olarak kapalıdır.
+        redModeActive = false
+        updateWolfImage(false, false)
 
         val filter = IntentFilter(
             "com.example.emergencysafety.RED_MODE_CHANGED"
@@ -354,7 +347,8 @@ class MainActivity : AppCompatActivity() {
             stopVoiceService()
         }
 
-        updateWolfImage(newActiveState)
+        // Mikrofon düğmesi kırmızı mod görselini değiştirmez.
+        // Kurt görseli yalnızca kırmızı mod yayınıyla değişir.
     }
 
     private fun vibrateOnClick() {
@@ -520,16 +514,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        // Ana ekran tekrar görünür olduğunda kurt görselini
-        // kayıtlı sesli sistem durumuna göre yenile.
-        if (::wolfBackground.isInitialized) {
-            val voiceActive = getSharedPreferences(
-                "AppSettings",
-                Context.MODE_PRIVATE
-            ).getBoolean("is_voice_active", false)
-
-            updateWolfImage(voiceActive, false)
-        }
+        // Burada mikrofon durumuna göre kurt görselini değiştirmiyoruz.
+        // Kırmızı mod durumu yayın üzerinden güncellenir.
     }
 
     override fun onDestroy() {
