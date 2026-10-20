@@ -1,11 +1,10 @@
-
 package com.example.emergencysafety
 
 import android.Manifest
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
@@ -23,7 +22,6 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.widget.CheckBox
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -40,7 +38,27 @@ class MainActivity : AppCompatActivity() {
     private var volumeDownRunnable: Runnable? = null
     private lateinit var wolfBackground: ImageView
     private var growlPlayer: MediaPlayer? = null
-    private var messageButtonAnimator: ObjectAnimator? = null
+
+    private var redModeActive = false
+
+    private val redModeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != "com.example.emergencysafety.RED_MODE_CHANGED") {
+                return
+            }
+
+            redModeActive = intent.getBooleanExtra("RED_MODE_ACTIVE", false)
+
+            // Kırmızı mod kapanınca kurt görselini,
+            // sesli sistemin mevcut durumuna göre güncelle.
+            val voiceActive = getSharedPreferences(
+                "AppSettings",
+                Context.MODE_PRIVATE
+            ).getBoolean("is_voice_active", false)
+
+            updateWolfImage(voiceActive)
+        }
+    }
 
     private val instructionPrefs by lazy {
         getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
@@ -57,6 +75,17 @@ class MainActivity : AppCompatActivity() {
                 .getBoolean("is_voice_active", false),
             false
         )
+
+        val filter = IntentFilter(
+            "com.example.emergencysafety.RED_MODE_CHANGED"
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(redModeReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(redModeReceiver, filter)
+        }
 
         checkPermissionsAndStartService()
         checkOverlayPermission()
@@ -83,8 +112,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Mavi bilgi butonu
-        // Mevcut XML kimliği korunuyor.
         val btnBlueAlertId =
             resources.getIdentifier("btnGreenAlert", "id", packageName)
 
@@ -111,78 +138,7 @@ class MainActivity : AppCompatActivity() {
             vibrateOnClick()
             toggleVoiceService()
         }
-
-        // Yeni acil durum mesajı düğmesi
-        setupMessageAlertButton()
     }
-
-    private fun setupMessageAlertButton() {
-        val content = findViewById<FrameLayout>(android.R.id.content)
-        val root = content.getChildAt(0) as? FrameLayout
-
-        if (root == null) {
-            Toast.makeText(
-                this,
-                "Mesaj düğmesi oluşturulamadı.",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-
-        val messageButton = TextView(this).apply {
-            text = "ACİL DURUM\nMESAJINIZ VAR"
-            textSize = 17f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            gravity = Gravity.CENTER
-            setPadding(dp(16), dp(8), dp(16), dp(8))
-            elevation = dp(12).toFloat()
-            isClickable = true
-            isFocusable = true
-            contentDescription = "Acil durum mesajlarını aç"
-
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(28).toFloat()
-                setColor(Color.rgb(205, 0, 28))
-                setStroke(dp(3), Color.WHITE)
-            }
-
-            setOnClickListener {
-                vibrateOnClick()
-                startActivity(
-                    Intent(
-                        this@MainActivity,
-                        MessageActivity::class.java
-                    )
-                )
-            }
-        }
-
-        val params = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            dp(68),
-            Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        ).apply {
-            topMargin = dp(220)
-            leftMargin = dp(24)
-            rightMargin = dp(24)
-        }
-
-        root.addView(messageButton, params)
-
-        // Düğmeye hafif yanıp sönme efekti
-        messageButtonAnimator =
-            ObjectAnimator.ofFloat(messageButton, View.ALPHA, 1f, 0.45f).apply {
-                duration = 800
-                repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.REVERSE
-                start()
-            }
-    }
-
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density + 0.5f).toInt()
 
     private fun playGrowl() {
         growlPlayer?.release()
@@ -561,13 +517,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        // Ana ekran tekrar görünür olduğunda kurt görselini
+        // kayıtlı sesli sistem durumuna göre yenile.
+        if (::wolfBackground.isInitialized) {
+            val voiceActive = getSharedPreferences(
+                "AppSettings",
+                Context.MODE_PRIVATE
+            ).getBoolean("is_voice_active", false)
+
+            updateWolfImage(voiceActive, false)
+        }
+    }
+
     override fun onDestroy() {
-        messageButtonAnimator?.cancel()
-        messageButtonAnimator = null
+        try {
+            unregisterReceiver(redModeReceiver)
+        } catch (_: Exception) {
+            // Receiver zaten kaldırılmış olabilir.
+        }
 
         growlPlayer?.release()
         growlPlayer = null
-
         super.onDestroy()
     }
 }
