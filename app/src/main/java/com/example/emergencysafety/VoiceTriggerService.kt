@@ -1,3 +1,4 @@
+
 package com.example.emergencysafety
 
 import android.app.Notification
@@ -32,6 +33,12 @@ class VoiceTriggerService : Service() {
     private val serviceScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    @Volatile
+    private var emergencySending = false
+
+    @Volatile
+    private var stopAfterSending = false
+
     override fun onCreate() {
         super.onCreate()
 
@@ -40,6 +47,10 @@ class VoiceTriggerService : Service() {
 
         startForegroundServiceWithNotification()
 
+        startVoiceListening()
+    }
+
+    private fun startVoiceListening() {
         voiceTriggerManager.startListening(
             onRedStart = { triggerRedCode() },
             onRedStop = { stopRedCode() },
@@ -62,18 +73,28 @@ class VoiceTriggerService : Service() {
     }
 
     private fun triggerRedCode() {
-        Log.i(TAG, "Kırmızı kod doğrulandı; acil mesaj gönderimi başlatılıyor.")
+        Log.i(
+            TAG,
+            "Kırmızı kod doğrulandı; acil mesaj gönderimi başlatılıyor."
+        )
 
         sendEmergencyMessages()
 
-        val intent = Intent(this, FakeDeadActivity::class.java).apply {
+        val intent = Intent(
+            this,
+            FakeDeadActivity::class.java
+        ).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             )
         }
 
-        startActivity(intent)
+        try {
+            startActivity(intent)
+        } catch (error: Exception) {
+            Log.e(TAG, "Kırmızı ekran açılamadı.", error)
+        }
     }
 
     private fun sendEmergencyMessages() {
@@ -116,90 +137,126 @@ class VoiceTriggerService : Service() {
             .orEmpty()
 
         if (message.isBlank()) {
-            Log.e(TAG, "Gönderim durdu: Acil durum mesajı kaydedilmemiş.")
+            Log.e(
+                TAG,
+                "Gönderim durdu: Acil durum mesajı kaydedilmemiş."
+            )
             updateNotification("Acil durum mesajı ayarlanmamış.")
             return
         }
 
         if (contacts.isEmpty()) {
-            Log.e(TAG, "Gönderim durdu: Acil durum kişisi bulunamadı.")
+            Log.e(
+                TAG,
+                "Gönderim durdu: Acil durum kişisi bulunamadı."
+            )
             updateNotification("Acil durum kişileri ayarlanmamış.")
             return
         }
 
         if (apiKey.isBlank()) {
-            Log.e(TAG, "Gönderim durdu: Worker anahtarı bulunamadı.")
+            Log.e(
+                TAG,
+                "Gönderim durdu: Worker anahtarı bulunamadı."
+            )
             updateNotification("Worker bağlantı ayarı eksik.")
             return
         }
 
+        emergencySending = true
+
         serviceScope.launch {
-            var succeeded = 0
-            val errors = mutableListOf<String>()
+            try {
+                var succeeded = 0
+                val errors = mutableListOf<String>()
 
-            updateNotification("Acil durum mesajları gönderiliyor...")
-
-            for ((name, originalPhone) in contacts) {
-                val phone = normalizePhoneNumber(originalPhone)
-
-                if (phone.isBlank()) {
-                    errors.add("$name: telefon numarası geçersiz")
-                    continue
-                }
-
-                val result = WhatsAppWorkerClient.sendMessage(
-                    phoneNumber = phone,
-                    message = message,
-                    apiKey = apiKey
+                updateNotification(
+                    "Acil durum mesajları gönderiliyor..."
                 )
 
-                result.fold(
-                    onSuccess = { response ->
-                        val accepted = try {
-                            JSONObject(response)
-                                .optBoolean("success", false)
-                        } catch (_: Exception) {
-                            false
-                        }
+                for ((name, originalPhone) in contacts) {
+                    val phone = normalizePhoneNumber(originalPhone)
 
-                        if (accepted) {
-                            succeeded++
-                            Log.i(
-                                TAG,
-                                "$name: Meta gönderim isteğini kabul etti."
-                            )
-                        } else {
-                            errors.add("$name: beklenmeyen Worker yanıtı")
+                    if (phone.isBlank()) {
+                        errors.add(
+                            "$name: telefon numarası geçersiz"
+                        )
+                        continue
+                    }
+
+                    val result = WhatsAppWorkerClient.sendMessage(
+                        phoneNumber = phone,
+                        message = message,
+                        apiKey = apiKey
+                    )
+
+                    result.fold(
+                        onSuccess = { response ->
+                            val accepted = try {
+                                JSONObject(response)
+                                    .optBoolean("success", false)
+                            } catch (_: Exception) {
+                                false
+                            }
+
+                            if (accepted) {
+                                succeeded++
+                                Log.i(
+                                    TAG,
+                                    "$name: Meta gönderim isteğini kabul etti."
+                                )
+                            } else {
+                                errors.add(
+                                    "$name: beklenmeyen Worker yanıtı"
+                                )
+                                Log.e(
+                                    TAG,
+                                    "$name: Beklenmeyen yanıt: $response"
+                                )
+                            }
+                        },
+                        onFailure = { error ->
+                            val detail = error.message
+                                ?: "Bilinmeyen gönderim hatası"
+
+                            errors.add("$name: $detail")
+
                             Log.e(
                                 TAG,
-                                "$name: Beklenmeyen yanıt: $response"
+                                "$name: WhatsApp gönderimi başarısız.",
+                                error
                             )
                         }
-                    },
-                    onFailure = { error ->
-                        val detail = error.message
-                            ?: "Bilinmeyen gönderim hatası"
+                    )
+                }
 
-                        errors.add("$name: $detail")
-                        Log.e(
-                            TAG,
-                            "$name: WhatsApp gönderimi başarısız.",
-                            error
-                        )
-                    }
+                val summary =
+                    "Gönderim isteği: $succeeded/${contacts.size}"
+
+                Log.i(TAG, summary)
+
+                if (errors.isNotEmpty()) {
+                    Log.e(TAG, errors.joinToString(" | "))
+                }
+
+                updateNotification(summary)
+
+            } catch (error: Exception) {
+                Log.e(
+                    TAG,
+                    "Acil mesaj gönderimi sırasında hata oluştu.",
+                    error
                 )
+                updateNotification("Mesaj gönderiminde hata oluştu.")
+
+            } finally {
+                emergencySending = false
+
+                if (stopAfterSending) {
+                    stopAfterSending = false
+                    stopSelf()
+                }
             }
-
-            val summary =
-                "Gönderim isteği: $succeeded/${contacts.size}"
-
-            Log.i(TAG, summary)
-
-            if (errors.isNotEmpty()) {
-                Log.e(TAG, errors.joinToString(" | "))
-            }
-
-            updateNotification(summary)
         }
     }
 
@@ -211,7 +268,8 @@ class VoiceTriggerService : Service() {
         }
 
         return when {
-            digits.startsWith("90") && digits.length == 12 -> digits
+            digits.startsWith("90") && digits.length == 12 ->
+                digits
 
             digits.startsWith("0") && digits.length == 11 ->
                 "90${digits.drop(1)}"
@@ -224,9 +282,11 @@ class VoiceTriggerService : Service() {
     }
 
     private fun stopRedCode() {
-        Log.i(TAG, "Kırmızı kod durduruluyor; sesli dinleme kapatılacak.")
+        Log.i(
+            TAG,
+            "Kırmızı kod durduruluyor; sesli dinleme kapatılıyor."
+        )
 
-        // Ana ekrandaki sesli dinleme ayarını kapat.
         getSharedPreferences(
             "AppSettings",
             Context.MODE_PRIVATE
@@ -234,13 +294,19 @@ class VoiceTriggerService : Service() {
             .putBoolean("is_voice_active", false)
             .apply()
 
-        // Karartılmış ekranı kapatma sinyali.
-        val stopBroadcast =
-            Intent("com.example.emergencysafety.CLOSE_FAKE_DEAD").apply {
-                setPackage(packageName)
-            }
+        // Yeniden dinleme planlarını ve mikrofonu hemen kapat.
+        try {
+            voiceTriggerManager.stopListening()
+        } catch (error: Exception) {
+            Log.e(TAG, "Sesli dinleme kapatılamadı.", error)
+        }
 
-        sendBroadcast(stopBroadcast)
+        // Kırmızı ekranı kapatma sinyali.
+        sendBroadcast(
+            Intent(
+                "com.example.emergencysafety.CLOSE_FAKE_DEAD"
+            ).setPackage(packageName)
+        )
 
         val closeIntent = Intent(
             this,
@@ -253,12 +319,19 @@ class VoiceTriggerService : Service() {
             putExtra("EXTRA_CLOSE", true)
         }
 
-        // Ekran kapatma başarısız olsa bile servisi durdur.
         try {
             startActivity(closeIntent)
         } catch (error: Exception) {
             Log.e(TAG, "Kırmızı ekran kapatılamadı.", error)
-        } finally {
+        }
+
+        // Devam eden WhatsApp isteğini servis kapanarak iptal etme.
+        if (emergencySending) {
+            stopAfterSending = true
+            updateNotification(
+                "Sesli dinleme kapalı; mesaj gönderimi sürüyor."
+            )
+        } else {
             stopSelf()
         }
     }
