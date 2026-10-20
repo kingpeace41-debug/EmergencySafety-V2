@@ -2,6 +2,8 @@
 package com.example.emergencysafety
 
 import android.Manifest
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -21,6 +23,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.widget.CheckBox
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -37,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private var volumeDownRunnable: Runnable? = null
     private lateinit var wolfBackground: ImageView
     private var growlPlayer: MediaPlayer? = null
+    private var messageButtonAnimator: ObjectAnimator? = null
 
     private val instructionPrefs by lazy {
         getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
@@ -80,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Mavi bilgi butonu
-        // XML dosyasındaki mevcut kimlik btnGreenAlert olarak korunuyor.
+        // Mevcut XML kimliği korunuyor.
         val btnBlueAlertId =
             resources.getIdentifier("btnGreenAlert", "id", packageName)
 
@@ -107,7 +111,78 @@ class MainActivity : AppCompatActivity() {
             vibrateOnClick()
             toggleVoiceService()
         }
+
+        // Yeni acil durum mesajı düğmesi
+        setupMessageAlertButton()
     }
+
+    private fun setupMessageAlertButton() {
+        val content = findViewById<FrameLayout>(android.R.id.content)
+        val root = content.getChildAt(0) as? FrameLayout
+
+        if (root == null) {
+            Toast.makeText(
+                this,
+                "Mesaj düğmesi oluşturulamadı.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        val messageButton = TextView(this).apply {
+            text = "ACİL DURUM\nMESAJINIZ VAR"
+            textSize = 17f
+            setTextColor(Color.WHITE)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+            elevation = dp(12).toFloat()
+            isClickable = true
+            isFocusable = true
+            contentDescription = "Acil durum mesajlarını aç"
+
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(28).toFloat()
+                setColor(Color.rgb(205, 0, 28))
+                setStroke(dp(3), Color.WHITE)
+            }
+
+            setOnClickListener {
+                vibrateOnClick()
+                startActivity(
+                    Intent(
+                        this@MainActivity,
+                        MessageActivity::class.java
+                    )
+                )
+            }
+        }
+
+        val params = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            dp(68),
+            Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        ).apply {
+            topMargin = dp(220)
+            leftMargin = dp(24)
+            rightMargin = dp(24)
+        }
+
+        root.addView(messageButton, params)
+
+        // Düğmeye hafif yanıp sönme efekti
+        messageButtonAnimator =
+            ObjectAnimator.ofFloat(messageButton, View.ALPHA, 1f, 0.45f).apply {
+                duration = 800
+                repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.REVERSE
+                start()
+            }
+    }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density + 0.5f).toInt()
 
     private fun playGrowl() {
         growlPlayer?.release()
@@ -487,8 +562,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        messageButtonAnimator?.cancel()
+        messageButtonAnimator = null
+
         growlPlayer?.release()
         growlPlayer = null
+
         super.onDestroy()
     }
 }
