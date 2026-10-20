@@ -2,8 +2,10 @@
 package com.example.emergencysafety
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
@@ -38,6 +40,27 @@ class MainActivity : AppCompatActivity() {
     private lateinit var wolfBackground: ImageView
     private var growlPlayer: MediaPlayer? = null
 
+    private var redModeActive = false
+
+    private val redModeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != "com.example.emergencysafety.RED_MODE_CHANGED") {
+                return
+            }
+
+            redModeActive = intent.getBooleanExtra("RED_MODE_ACTIVE", false)
+
+            // Kırmızı mod kapanınca kurt görselini,
+            // sesli sistemin mevcut durumuna göre güncelle.
+            val voiceActive = getSharedPreferences(
+                "AppSettings",
+                Context.MODE_PRIVATE
+            ).getBoolean("is_voice_active", false)
+
+            updateWolfImage(voiceActive)
+        }
+    }
+
     private val instructionPrefs by lazy {
         getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
     }
@@ -53,6 +76,17 @@ class MainActivity : AppCompatActivity() {
                 .getBoolean("is_voice_active", false),
             false
         )
+
+        val filter = IntentFilter(
+            "com.example.emergencysafety.RED_MODE_CHANGED"
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(redModeReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(redModeReceiver, filter)
+        }
 
         checkPermissionsAndStartService()
         checkOverlayPermission()
@@ -79,8 +113,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Mavi bilgi butonu
-        // XML dosyasındaki mevcut kimlik btnGreenAlert olarak korunuyor.
         val btnBlueAlertId =
             resources.getIdentifier("btnGreenAlert", "id", packageName)
 
@@ -486,7 +518,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        // Ana ekran tekrar görünür olduğunda kurt görselini
+        // kayıtlı sesli sistem durumuna göre yenile.
+        if (::wolfBackground.isInitialized) {
+            val voiceActive = getSharedPreferences(
+                "AppSettings",
+                Context.MODE_PRIVATE
+            ).getBoolean("is_voice_active", false)
+
+            updateWolfImage(voiceActive, false)
+        }
+    }
+
     override fun onDestroy() {
+        try {
+            unregisterReceiver(redModeReceiver)
+        } catch (_: Exception) {
+            // Receiver zaten kaldırılmış olabilir.
+        }
+
         growlPlayer?.release()
         growlPlayer = null
         super.onDestroy()
